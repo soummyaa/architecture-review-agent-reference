@@ -16,6 +16,7 @@ import requests
 from azure.identity import DefaultAzureCredential
 
 COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
+AI_FOUNDRY_SCOPE = "https://ai.azure.com/.default"
 GRAPH_SCOPE = "https://graph.microsoft.com/.default"
 REQUEST_TIMEOUT_SECONDS = 30
 DEFAULT_DEPLOYMENT_NAME = "architecture-review-setup"
@@ -206,7 +207,7 @@ def check_model_deployment(
             "messages": [
                 {"role": "user", "content": "Reply with the single word ready."}
             ],
-            "max_tokens": 8,
+            "max_completion_tokens": 8,
         },
         timeout=REQUEST_TIMEOUT_SECONDS,
     )
@@ -282,6 +283,7 @@ def main() -> int:
     credential = DefaultAzureCredential()
     try:
         cognitive_token = credential.get_token(COGNITIVE_SERVICES_SCOPE).token
+        foundry_token = credential.get_token(AI_FOUNDRY_SCOPE).token
         graph_token = credential.get_token(GRAPH_SCOPE).token
     except Exception:
         print(
@@ -291,13 +293,14 @@ def main() -> int:
         return 2
 
     cognitive_authorization = f"Bearer {cognitive_token}"
+    foundry_authorization = f"Bearer {foundry_token}"
     graph_authorization = f"Bearer {graph_token}"
     with requests.Session() as session:
         results = [
             run_check(
                 "Microsoft Foundry project",
                 lambda: check_foundry_project(
-                    session, cognitive_authorization, config.project_endpoint
+                    session, foundry_authorization, config.project_endpoint
                 ),
             ),
             run_check(
