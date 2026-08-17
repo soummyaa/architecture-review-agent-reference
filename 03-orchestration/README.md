@@ -1,18 +1,19 @@
-# Module 03: Orchestration
+# 03 — Orchestration
 
 ## Goal
-
-Coordinate intake, standards analysis, optional research, and ADR generation
-with explicit typed handoffs between Microsoft Foundry agents.
+Add a gap analysis agent that consumes the intake output and the standards
+findings, wired behind an explicit orchestrator. This is the multi-agent
+pattern the workshop exists to demonstrate.
 
 ## Prerequisites
+- 01 and 02 running successfully
 
-- Completed [Module 00](../00-setup/README.md).
-- Standalone equivalents of the specialist-agent contracts when this module is
-  implemented.
+## Run
+python 03-orchestration/run.py
+--submission data/synthetic/submissions/
 
-## Run Standalone
+SUB-002-quickship-document-service.md
 
-This module is scaffolded but not implemented yet. No executable command is
-available. Its future implementation must include its own runnable sample
-inputs and must not import code from another numbered module.
+## What you should understand by the end
+Where the orchestration boundary sits, how state passes between agents,
+and why decomposing into several agents beats one large prompt.

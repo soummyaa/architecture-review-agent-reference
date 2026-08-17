@@ -1,18 +1,16 @@
-# Module 06: Review and Evaluation
+# 06 — Review and Evaluation
 
 ## Goal
-
-Evaluate architecture-review findings and generated ADRs for standards
-coverage, groundedness, completeness, and output quality.
+A critic agent that reviews the draft ADR against the source findings
+before a human sees it, plus a small harness that scores output across the
+synthetic cases.
 
 ## Prerequisites
+- 05-adr-generation running successfully
 
-- Completed [Module 00](../00-setup/README.md).
-- Synthetic submissions, expected findings, and ADR fixtures under
-  `data/synthetic` when this module is implemented.
+## Run
+python 06-review-eval/run.py
 
-## Run Standalone
-
-This module is scaffolded but not implemented yet. No executable command is
-available. Its future implementation must use synthetic fixtures and run
-without importing code from another numbered module.
+## What you should understand by the end
+How a review pass reduces hallucination risk, and what "good" means in a
+way you can measure rather than assert.

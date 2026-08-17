@@ -1,18 +1,19 @@
-# Module 04: Research
+# 04 — Research
 
 ## Goal
-
-Research a proposed technology only from approved external sources and return
-typed, traceable findings to the review workflow.
+Research a submitted technology from external sources, restricted to a
+configurable domain allowlist, with every claim carrying a citation.
 
 ## Prerequisites
+- 03-orchestration running successfully
+- An approved domain allowlist in config
 
-- Completed [Module 00](../00-setup/README.md).
-- An approved-source allowlist and synthetic research request under
-  `data/synthetic` when this module is implemented.
+## Run
+python 04-research/run.py --technology "Northwind Analytics Cloud"
 
-## Run Standalone
 
-This module is scaffolded but not implemented yet. No executable command is
-available. Its future implementation must include a synthetic request and run
-without importing code from another numbered module.
+
+
+## What you should understand by the end
+How to constrain external grounding so the output is defensible, and why
+an allowlist is a governance control rather than a technical detail.

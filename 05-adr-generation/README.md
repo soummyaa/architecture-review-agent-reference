@@ -1,19 +1,19 @@
-# Module 05: ADR Generation
+# 05 — ADR Generation
 
 ## Goal
-
-Generate an Architecture Decision Record as a Word document from typed review
-findings and publish it to SharePoint through Microsoft Graph.
+Render the gap analysis and research output into an Architecture Decision
+Record as a DOCX file, then write it back to SharePoint.
 
 ## Prerequisites
+- 03-orchestration running successfully
+- Graph access to a SharePoint site, verified in 00-setup
 
-- Completed [Module 00](../00-setup/README.md), including validated SharePoint
-  access.
-- Synthetic review findings under `data/synthetic` when this module is
-  implemented.
+## Run
+python 05-adr-generation/run.py
+--submission data/synthetic/submissions/
 
-## Run Standalone
+SUB-001-northwind-analytics-cloud.md
 
-This module is scaffolded but not implemented yet. No executable command is
-available. Its future implementation must accept synthetic findings and run
-without importing code from another numbered module.
+## What you should understand by the end
+Why document layout belongs in code and content belongs to the model, and
+how the output lands somewhere people already work.
