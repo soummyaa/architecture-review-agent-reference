@@ -220,3 +220,4 @@ __marimo__/
 __pycache__/
 *.pyc
 .venv/
+working-output*.json

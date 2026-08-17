@@ -5,7 +5,10 @@
     "ghcr.io/devcontainers/features/azure-cli:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
-  "postCreateCommand": "pip install -r 00-setup/requirements.txt && az bicep install",
+  "containerEnv": {
+    "AZURE_RESOURCE_GROUP": "rg-architecture-review-workshop"
+  },
+  "postCreateCommand": "python -m pip install -r 00-setup/requirements.txt -r 01-standards-agent/requirements.txt && az bicep install",
   "customizations": {
     "vscode": {
       "extensions": [
