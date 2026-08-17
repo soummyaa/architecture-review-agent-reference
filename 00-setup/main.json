@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "1333311263614602411"
+      "templateHash": "7275982229475877924"
     }
   },
   "parameters": {
@@ -14,6 +14,12 @@
       "defaultValue": "[resourceGroup().location]",
       "metadata": {
         "description": "Azure region for all resources."
+      }
+    },
+    "principalId": {
+      "type": "string",
+      "metadata": {
+        "description": "Object ID of the user or managed identity that runs the workshop."
       }
     },
     "namePrefix": {
@@ -55,18 +61,33 @@
     },
     "modelCapacity": {
       "type": "int",
-      "defaultValue": 10,
+      "defaultValue": 50,
       "minValue": 1,
       "metadata": {
         "description": "Deployment capacity in thousands of tokens per minute."
+      }
+    },
+    "sharepointHostname": {
+      "type": "string",
+      "metadata": {
+        "description": "SharePoint hostname used by the setup validator."
+      }
+    },
+    "sharepointSitePath": {
+      "type": "string",
+      "metadata": {
+        "description": "Server-relative path of the SharePoint workshop site."
       }
     }
   },
   "variables": {
     "uniqueSuffix": "[uniqueString(resourceGroup().id)]",
     "foundryName": "[take(format('{0}-{1}', parameters('namePrefix'), variables('uniqueSuffix')), 64)]",
-    "keyVaultName": "[take(format('{0}-{1}', parameters('namePrefix'), variables('uniqueSuffix')), 24)]",
-    "storageName": "[format('ar{0}', variables('uniqueSuffix'))]"
+    "keyVaultName": "[format('kv{0}', variables('uniqueSuffix'))]",
+    "storageName": "[format('ar{0}', variables('uniqueSuffix'))]",
+    "azureAiDeveloperRoleId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '64702f94-c441-49e6-a78b-ef80e0188fee')]",
+    "keyVaultSecretsUserRoleId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+    "storageBlobDataContributorRoleId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]"
   },
   "resources": [
     {
@@ -117,7 +138,7 @@
           "name": "[parameters('modelName')]",
           "version": "[parameters('modelVersion')]"
         },
-        "versionUpgradeOption": "OnceNewDefaultVersionAvailable"
+        "versionUpgradeOption": "NoAutoUpgrade"
       },
       "dependsOn": [
         "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryName'))]"
@@ -157,6 +178,45 @@
         "publicNetworkAccess": "Enabled",
         "supportsHttpsTrafficOnly": true
       }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryName'))]",
+      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', variables('foundryName')), parameters('principalId'), variables('azureAiDeveloperRoleId'))]",
+      "properties": {
+        "principalId": "[parameters('principalId')]",
+        "roleDefinitionId": "[variables('azureAiDeveloperRoleId')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), parameters('principalId'), variables('keyVaultSecretsUserRoleId'))]",
+      "properties": {
+        "principalId": "[parameters('principalId')]",
+        "roleDefinitionId": "[variables('keyVaultSecretsUserRoleId')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')), parameters('principalId'), variables('storageBlobDataContributorRoleId'))]",
+      "properties": {
+        "principalId": "[parameters('principalId')]",
+        "roleDefinitionId": "[variables('storageBlobDataContributorRoleId')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
+      ]
     }
   ],
   "outputs": {
@@ -183,6 +243,14 @@
     "keyVaultName": {
       "type": "string",
       "value": "[variables('keyVaultName')]"
+    },
+    "sharepointHostname": {
+      "type": "string",
+      "value": "[parameters('sharepointHostname')]"
+    },
+    "sharepointSitePath": {
+      "type": "string",
+      "value": "[parameters('sharepointSitePath')]"
     },
     "storageAccountName": {
       "type": "string",

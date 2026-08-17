@@ -3,6 +3,9 @@ targetScope = 'resourceGroup'
 @description('Azure region for all resources.')
 param location string = resourceGroup().location
 
+@description('Object ID of the user or managed identity that runs the workshop.')
+param principalId string
+
 @description('Short prefix used to create globally unique resource names.')
 @minLength(2)
 @maxLength(10)
@@ -22,12 +25,30 @@ param modelDeploymentName string = 'architecture-review-model'
 
 @description('Deployment capacity in thousands of tokens per minute.')
 @minValue(1)
-param modelCapacity int = 10
+param modelCapacity int = 50
+
+@description('SharePoint hostname used by the setup validator.')
+param sharepointHostname string
+
+@description('Server-relative path of the SharePoint workshop site.')
+param sharepointSitePath string
 
 var uniqueSuffix = uniqueString(resourceGroup().id)
 var foundryName = take('${namePrefix}-${uniqueSuffix}', 64)
-var keyVaultName = take('${namePrefix}-${uniqueSuffix}', 24)
+var keyVaultName = 'kv${uniqueSuffix}'
 var storageName = 'ar${uniqueSuffix}'
+var azureAiDeveloperRoleId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '64702f94-c441-49e6-a78b-ef80e0188fee'
+)
+var keyVaultSecretsUserRoleId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  '4633458b-17de-408a-b874-0445c86b69e6'
+)
+var storageBlobDataContributorRoleId = subscriptionResourceId(
+  'Microsoft.Authorization/roleDefinitions',
+  'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+)
 
 resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   name: foundryName
@@ -72,7 +93,7 @@ resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-
       name: modelName
       version: modelVersion
     }
-    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+    versionUpgradeOption: 'NoAutoUpgrade'
   }
 }
 
@@ -109,10 +130,39 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   }
 }
 
+resource foundryRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(foundry.id, principalId, azureAiDeveloperRoleId)
+  scope: foundry
+  properties: {
+    principalId: principalId
+    roleDefinitionId: azureAiDeveloperRoleId
+  }
+}
+
+resource keyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, principalId, keyVaultSecretsUserRoleId)
+  scope: keyVault
+  properties: {
+    principalId: principalId
+    roleDefinitionId: keyVaultSecretsUserRoleId
+  }
+}
+
+resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, principalId, storageBlobDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    principalId: principalId
+    roleDefinitionId: storageBlobDataContributorRoleId
+  }
+}
+
 output foundryProjectEndpoint string = 'https://${foundry.name}.services.ai.azure.com/api/projects/${project.name}'
 output foundryResourceId string = foundry.id
 output foundryResourceName string = foundry.name
 output modelEndpoint string = 'https://${foundry.name}.openai.azure.com/'
 output modelDeploymentName string = modelDeployment.name
 output keyVaultName string = keyVault.name
+output sharepointHostname string = sharepointHostname
+output sharepointSitePath string = sharepointSitePath
 output storageAccountName string = storageAccount.name
