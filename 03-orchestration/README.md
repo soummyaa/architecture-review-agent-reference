@@ -24,8 +24,19 @@ You can pass `--project-endpoint` and `--model-deployment` instead of using
 `AZURE_RESOURCE_GROUP`. Authentication uses `DefaultAzureCredential` and the
 `https://ai.azure.com/.default` scope required by the Foundry project endpoint.
 
+Use `--standards-directory` to point the standards agent at your own Markdown
+standards library instead of the synthetic workshop standards:
+
+```bash
+python 03-orchestration/run.py \
+  --standards-directory path/to/standards \
+  data/synthetic/submissions/SUB-002-quickship-document-service.md
+```
+
 The command writes structured ADR content as JSON to standard output. Document
-formatting is intentionally deferred to Module 05.
+formatting is intentionally deferred to Module 05. Validation summaries and
+elapsed times for both agent calls and the total orchestration are written to
+standard error.
 
 Add `--keep-agent` when participants need to inspect both agents,
 conversations, and runs in the Microsoft Foundry portal:
