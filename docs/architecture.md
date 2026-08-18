@@ -3,28 +3,38 @@
 ## The flow
 
 ```mermaid
-flowchart TD
-    SUB["Technology submission<br/>(markdown or DOCX)"]
+flowchart LR
+    SUB["<b>Technology submission</b>"]
+    STDS[("<b>Architecture standards</b>")]
 
-    subgraph ORCH["Orchestrator (03)"]
+    subgraph ORCH ["ORCHESTRATOR"]
         direction TB
-        SA["Standards agent (01)"]
-        AA["ADR author agent (03)"]
-        RA["Reviewer agent (06)"]
-        SA -->|"standards_report"| AA
-        AA -->|"draft_adr"| RA
+        SA["<b>Standards agent</b>"]
+        AA["<b>ADR author agent</b>"]
+        RA["<b>Reviewer agent</b>"]
+        SA -- "standards_report" --> AA
+        AA -- "draft_adr" --> RA
     end
 
-    STDS[("Architecture standards<br/>SharePoint library")]
-    REND["DOCX renderer (05)<br/>Python + template"]
-    DOC["Architecture Decision Record<br/>.docx"]
-    SP[("SharePoint<br/>ADR library")]
+    REND["<b>DOCX renderer</b>"]
+    DOC["<b>Architecture Decision Record</b>"]
+    SP[("<b>SharePoint</b>")]
 
     SUB --> SA
-    STDS -.->|grounding| SA
-    RA -->|"review + reviewed_adr"| REND
+    STDS -. "grounding" .-> SA
+    RA -- "reviewed_adr" --> REND
     REND --> DOC
-    DOC -.->|optional| SP
+    DOC -. "optional" .-> SP
+
+    classDef agent fill:#DCE9FB,stroke:#2B6CB0,stroke-width:2px,color:#12263F
+    classDef store fill:#EDEFF2,stroke:#8A9099,stroke-width:2px,color:#2A2E33
+    classDef doc fill:#DFF3E4,stroke:#2F855A,stroke-width:2px,color:#12341F
+
+    class SA,AA,RA agent
+    class STDS,SP store
+    class SUB,DOC doc
+
+    style ORCH fill:#F7F9FC,stroke:#2B6CB0,stroke-width:2px,color:#2B6CB0
 ```
 
 ## What each agent does
