@@ -27,6 +27,17 @@ You can pass `--project-endpoint` and `--model-deployment` instead of using
 The command writes structured ADR content as JSON to standard output. Document
 formatting is intentionally deferred to Module 05.
 
+Add `--keep-agent` when participants need to inspect both agents,
+conversations, and runs in the Microsoft Foundry portal:
+
+```bash
+python 03-orchestration/run.py --keep-agent \
+  data/synthetic/submissions/SUB-002-quickship-document-service.md
+```
+
+Each retained agent name and version is printed to standard error. Without the
+flag, all temporary resources are cleaned up as before.
+
 ## How the orchestration works
 
 The flow is deliberately linear:

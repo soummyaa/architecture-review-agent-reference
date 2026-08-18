@@ -41,6 +41,18 @@ token scope. It uploads only the existing files under
 returned citation against the local standard headings, prints JSON, and removes
 the temporary agent version, vector store, uploaded files, and conversation.
 
+To inspect the agent, conversation, and run in the Microsoft Foundry portal,
+add `--keep-agent`:
+
+```bash
+python 01-standards-agent/run.py --keep-agent \
+  data/synthetic/submissions/SUB-001-northwind-analytics-cloud.md
+```
+
+The command prints the retained agent name and version to standard error. By
+default, cleanup still runs so repeated workshop runs do not accumulate agent
+versions and supporting resources.
+
 ## Output Contract
 
 Each finding has one of four statuses: `conforms`, `does_not_conform`,

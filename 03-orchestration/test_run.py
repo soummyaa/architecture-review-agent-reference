@@ -85,11 +85,14 @@ class OrchestratorTests(unittest.TestCase):
             "author-agent",
             Path("submission.md"),
             standards,
+            keep_agent=True,
         )
 
         self.assertIs(actual_adr, expected_adr)
         standards_agent.assert_called_once()
         self.assertIs(adr_author_agent.call_args.args[3], report)
+        self.assertTrue(standards_agent.call_args.args[-1])
+        self.assertTrue(adr_author_agent.call_args.args[-1])
 
 
 class AdrValidationTests(unittest.TestCase):
@@ -146,6 +149,22 @@ class FoundryClientTests(unittest.TestCase):
             credential=credential,
             credential_scopes=[AI_FOUNDRY_SCOPE],
         )
+        project_client.agents.delete_version.assert_called_once()
+        openai_client.conversations.delete.assert_called_once()
+
+        project_client.agents.delete_version.reset_mock()
+        openai_client.conversations.delete.reset_mock()
+
+        run_adr_author_agent(
+            "https://example.services.ai.azure.com/api/projects/example",
+            "example-model",
+            "author-agent",
+            example_report(),
+            keep_agent=True,
+        )
+
+        project_client.agents.delete_version.assert_not_called()
+        openai_client.conversations.delete.assert_not_called()
 
 
 if __name__ == "__main__":

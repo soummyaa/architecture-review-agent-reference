@@ -105,6 +105,11 @@ def parse_args() -> argparse.Namespace:
         help=f"Foundry agent name (default: {DEFAULT_AGENT_NAME}).",
     )
     parser.add_argument(
+        "--keep-agent",
+        action="store_true",
+        help="Keep the agent and run resources for inspection in the Microsoft Foundry portal.",
+    )
+    parser.add_argument(
         "--standards-directory",
         type=Path,
         default=DEFAULT_STANDARDS_DIRECTORY,
@@ -244,6 +249,7 @@ def review_submission(
     agent_name: str,
     submission_path: Path,
     standards: list[StandardDocument],
+    keep_agent: bool = False,
 ) -> ConformanceReport:
     submission = submission_path.read_text(encoding="utf-8")
     submission_id_match = SUBMISSION_ID_PATTERN.search(submission)
@@ -316,20 +322,26 @@ def review_submission(
                     f"{submission_id_match.group(1)}"
                 )
             validate_citations(report, standards)
+            disposition = "retained" if keep_agent else "cleaned up"
+            print(
+                f"Standards agent: {agent.name} version {agent.version} ({disposition})",
+                file=sys.stderr,
+            )
             return report
         finally:
-            if conversation_id:
-                openai_client.conversations.delete(conversation_id=conversation_id)
-            if agent_version:
-                project_client.agents.delete_version(
-                    agent_name=agent_name,
-                    agent_version=agent_version,
-                    force=True,
-                )
-            if vector_store_id:
-                openai_client.vector_stores.delete(vector_store_id)
-            for file_id in uploaded_file_ids:
-                openai_client.files.delete(file_id)
+            if not keep_agent:
+                if conversation_id:
+                    openai_client.conversations.delete(conversation_id=conversation_id)
+                if agent_version:
+                    project_client.agents.delete_version(
+                        agent_name=agent_name,
+                        agent_version=agent_version,
+                        force=True,
+                    )
+                if vector_store_id:
+                    openai_client.vector_stores.delete(vector_store_id)
+                for file_id in uploaded_file_ids:
+                    openai_client.files.delete(file_id)
 
 
 def main() -> int:
@@ -345,6 +357,7 @@ def main() -> int:
             args.agent_name,
             args.submission,
             standards,
+            args.keep_agent,
         )
     except Exception as error:
         print(f"Standards review failed: {error}", file=sys.stderr)

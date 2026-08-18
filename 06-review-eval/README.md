@@ -31,6 +31,20 @@ reviewed ADR. Render only the reviewed ADR with Module 05:
 python 05-adr-generation/run.py reviewed-adr.json
 ```
 
+For a portal walkthrough, add `--keep-agent` before the submission path. The
+standards, ADR author, and reviewer agents are then retained with their
+conversations and runs for inspection in the Microsoft Foundry portal. Their
+names and versions are printed to standard error, so redirected JSON remains
+valid:
+
+```bash
+python 06-review-eval/run.py --keep-agent \
+  data/synthetic/submissions/SUB-001-northwind-analytics-cloud.md \
+  > reviewed-adr.json
+```
+
+Without the flag, the existing cleanup behavior remains in place.
+
 ## The three-agent chain
 
 The orchestrator is deliberately linear:

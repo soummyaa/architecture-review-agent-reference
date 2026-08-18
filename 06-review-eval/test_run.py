@@ -101,6 +101,7 @@ class OrchestratorTests(unittest.TestCase):
             "reviewer-agent",
             Path("submission.md"),
             [],
+            keep_agent=True,
         )
 
         self.assertIs(result.standards_report, report)
@@ -108,6 +109,9 @@ class OrchestratorTests(unittest.TestCase):
         self.assertIs(result.review, review)
         self.assertIs(reviewer_agent.call_args.args[3], report)
         self.assertIs(reviewer_agent.call_args.args[4], draft)
+        self.assertTrue(standards_agent.call_args.args[-1])
+        self.assertTrue(author_agent.call_args.args[-1])
+        self.assertTrue(reviewer_agent.call_args.args[-1])
 
 
 class ReviewValidationTests(unittest.TestCase):
@@ -184,6 +188,23 @@ class FoundryClientTests(unittest.TestCase):
             credential=credential,
             credential_scopes=[AI_FOUNDRY_SCOPE],
         )
+        project_client.agents.delete_version.assert_called_once()
+        openai_client.conversations.delete.assert_called_once()
+
+        project_client.agents.delete_version.reset_mock()
+        openai_client.conversations.delete.reset_mock()
+
+        run_reviewer_agent(
+            "https://example.services.ai.azure.com/api/projects/example",
+            "example-model",
+            "reviewer-agent",
+            example_report(),
+            example_adr(),
+            keep_agent=True,
+        )
+
+        project_client.agents.delete_version.assert_not_called()
+        openai_client.conversations.delete.assert_not_called()
 
 
 if __name__ == "__main__":
