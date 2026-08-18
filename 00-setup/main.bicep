@@ -33,10 +33,29 @@ param sharepointHostname string
 @description('Server-relative path of the SharePoint workshop site.')
 param sharepointSitePath string
 
+@description('Deploy private endpoints, private DNS, and disable public access to the platform services.')
+param enablePrivateNetworking bool = true
+
+@description('Deploy a Linux jump box with a public IP in the private network.')
+param deployJumpBox bool = false
+
+@description('SSH public key for the optional Linux jump box.')
+param sshPublicKey string = ''
+
+@description('Administrator username for the optional Linux jump box.')
+param jumpBoxAdminUsername string = 'workshopadmin'
+
 var uniqueSuffix = uniqueString(resourceGroup().id)
 var foundryName = take('${namePrefix}-${uniqueSuffix}', 64)
 var keyVaultName = 'kv${uniqueSuffix}'
 var storageName = 'ar${uniqueSuffix}'
+var virtualNetworkName = '${namePrefix}-vnet'
+var privateEndpointSubnetName = 'private-endpoints'
+var jumpBoxSubnetName = 'jumpbox'
+var jumpBoxName = '${namePrefix}-jumpbox'
+var jumpBoxPublicIpName = '${namePrefix}-jumpbox-pip'
+var jumpBoxNicName = '${namePrefix}-jumpbox-nic'
+var jumpBoxNsgName = '${namePrefix}-jumpbox-nsg'
 var azureAiDeveloperRoleId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',
   '64702f94-c441-49e6-a78b-ef80e0188fee'
@@ -49,6 +68,43 @@ var storageBlobDataContributorRoleId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',
   'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
 )
+
+resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = if (enablePrivateNetworking) {
+  name: virtualNetworkName
+  location: location
+  properties: {
+    addressSpace: {
+      addressPrefixes: [
+        '10.0.0.0/16'
+      ]
+    }
+    subnets: [
+      {
+        name: privateEndpointSubnetName
+        properties: {
+          addressPrefix: '10.0.1.0/24'
+          privateEndpointNetworkPolicies: 'Disabled'
+        }
+      }
+      {
+        name: jumpBoxSubnetName
+        properties: {
+          addressPrefix: '10.0.2.0/24'
+        }
+      }
+    ]
+  }
+}
+
+resource privateEndpointSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existing = if (enablePrivateNetworking) {
+  parent: virtualNetwork
+  name: privateEndpointSubnetName
+}
+
+resource jumpBoxSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existing = if (enablePrivateNetworking && deployJumpBox) {
+  parent: virtualNetwork
+  name: jumpBoxSubnetName
+}
 
 resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   name: foundryName
@@ -63,7 +119,7 @@ resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   properties: {
     allowProjectManagement: true
     customSubDomainName: foundryName
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
   }
 }
 
@@ -104,7 +160,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     accessPolicies: []
     enableRbacAuthorization: true
     enableSoftDelete: true
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     sku: {
       family: 'A'
       name: 'standard'
@@ -125,8 +181,270 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
     allowBlobPublicAccess: false
     allowSharedKeyAccess: false
     minimumTlsVersion: 'TLS1_2'
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     supportsHttpsTrafficOnly: true
+  }
+}
+
+resource foundryPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = if (enablePrivateNetworking) {
+  name: 'privatelink.cognitiveservices.azure.com'
+  location: 'global'
+}
+
+resource keyVaultPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = if (enablePrivateNetworking) {
+  name: 'privatelink.vaultcore.azure.net'
+  location: 'global'
+}
+
+resource storagePrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = if (enablePrivateNetworking) {
+  name: 'privatelink.blob.${environment().suffixes.storage}'
+  location: 'global'
+}
+
+resource foundryPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (enablePrivateNetworking) {
+  parent: foundryPrivateDnsZone
+  name: '${virtualNetworkName}-link'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: virtualNetwork.id
+    }
+  }
+}
+
+resource keyVaultPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (enablePrivateNetworking) {
+  parent: keyVaultPrivateDnsZone
+  name: '${virtualNetworkName}-link'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: virtualNetwork.id
+    }
+  }
+}
+
+resource storagePrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (enablePrivateNetworking) {
+  parent: storagePrivateDnsZone
+  name: '${virtualNetworkName}-link'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: virtualNetwork.id
+    }
+  }
+}
+
+resource foundryPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = if (enablePrivateNetworking) {
+  name: '${foundryName}-pe'
+  location: location
+  properties: {
+    subnet: {
+      id: privateEndpointSubnet.id
+    }
+    privateLinkServiceConnections: [
+      {
+        name: '${foundryName}-connection'
+        properties: {
+          privateLinkServiceId: foundry.id
+          groupIds: [
+            'account'
+          ]
+        }
+      }
+    ]
+  }
+}
+
+resource keyVaultPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = if (enablePrivateNetworking) {
+  name: '${keyVaultName}-pe'
+  location: location
+  properties: {
+    subnet: {
+      id: privateEndpointSubnet.id
+    }
+    privateLinkServiceConnections: [
+      {
+        name: '${keyVaultName}-connection'
+        properties: {
+          privateLinkServiceId: keyVault.id
+          groupIds: [
+            'vault'
+          ]
+        }
+      }
+    ]
+  }
+}
+
+resource storagePrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = if (enablePrivateNetworking) {
+  name: '${storageName}-pe'
+  location: location
+  properties: {
+    subnet: {
+      id: privateEndpointSubnet.id
+    }
+    privateLinkServiceConnections: [
+      {
+        name: '${storageName}-connection'
+        properties: {
+          privateLinkServiceId: storageAccount.id
+          groupIds: [
+            'blob'
+          ]
+        }
+      }
+    ]
+  }
+}
+
+resource foundryPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (enablePrivateNetworking) {
+  parent: foundryPrivateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'cognitiveservices'
+        properties: {
+          privateDnsZoneId: foundryPrivateDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
+resource keyVaultPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (enablePrivateNetworking) {
+  parent: keyVaultPrivateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'vaultcore'
+        properties: {
+          privateDnsZoneId: keyVaultPrivateDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
+resource storagePrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (enablePrivateNetworking) {
+  parent: storagePrivateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'blob'
+        properties: {
+          privateDnsZoneId: storagePrivateDnsZone.id
+        }
+      }
+    ]
+  }
+}
+
+resource jumpBoxNsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = if (enablePrivateNetworking && deployJumpBox) {
+  name: jumpBoxNsgName
+  location: location
+  properties: {
+    securityRules: [
+      {
+        name: 'allow-ssh'
+        properties: {
+          access: 'Allow'
+          direction: 'Inbound'
+          priority: 100
+          protocol: 'Tcp'
+          sourceAddressPrefix: 'Internet'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '22'
+        }
+      }
+    ]
+  }
+}
+
+resource jumpBoxPublicIp 'Microsoft.Network/publicIPAddresses@2024-05-01' = if (enablePrivateNetworking && deployJumpBox) {
+  name: jumpBoxPublicIpName
+  location: location
+  sku: {
+    name: 'Standard'
+  }
+  properties: {
+    publicIPAllocationMethod: 'Static'
+  }
+}
+
+resource jumpBoxNic 'Microsoft.Network/networkInterfaces@2024-05-01' = if (enablePrivateNetworking && deployJumpBox) {
+  name: jumpBoxNicName
+  location: location
+  properties: {
+    ipConfigurations: [
+      {
+        name: 'ipconfig1'
+        properties: {
+          privateIPAllocationMethod: 'Dynamic'
+          subnet: {
+            id: jumpBoxSubnet.id
+          }
+          publicIPAddress: {
+            id: jumpBoxPublicIp.id
+          }
+        }
+      }
+    ]
+    networkSecurityGroup: {
+      id: jumpBoxNsg.id
+    }
+  }
+}
+
+resource jumpBox 'Microsoft.Compute/virtualMachines@2024-07-01' = if (enablePrivateNetworking && deployJumpBox) {
+  name: jumpBoxName
+  location: location
+  properties: {
+    hardwareProfile: {
+      vmSize: 'Standard_B2s'
+    }
+    osProfile: {
+      computerName: jumpBoxName
+      adminUsername: jumpBoxAdminUsername
+      linuxConfiguration: {
+        disablePasswordAuthentication: true
+        ssh: {
+          publicKeys: [
+            {
+              path: '/home/${jumpBoxAdminUsername}/.ssh/authorized_keys'
+              keyData: sshPublicKey
+            }
+          ]
+        }
+      }
+    }
+    storageProfile: {
+      imageReference: {
+        publisher: 'Canonical'
+        offer: 'ubuntu-24_04-lts'
+        sku: 'server'
+        version: 'latest'
+      }
+      osDisk: {
+        createOption: 'FromImage'
+        managedDisk: {
+          storageAccountType: 'Standard_LRS'
+        }
+      }
+    }
+    networkProfile: {
+      networkInterfaces: [
+        {
+          id: jumpBoxNic.id
+          properties: {
+            primary: true
+          }
+        }
+      ]
+    }
   }
 }
 
@@ -166,3 +484,6 @@ output keyVaultName string = keyVault.name
 output sharepointHostname string = sharepointHostname
 output sharepointSitePath string = sharepointSitePath
 output storageAccountName string = storageAccount.name
+output virtualNetworkResourceId string = enablePrivateNetworking ? virtualNetwork.id : ''
+output privateEndpointSubnetResourceId string = enablePrivateNetworking ? privateEndpointSubnet.id : ''
+output jumpBoxPublicIpAddress string = enablePrivateNetworking && deployJumpBox ? (jumpBoxPublicIp.?properties.?ipAddress ?? '') : ''
