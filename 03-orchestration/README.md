@@ -1,14 +1,16 @@
 # 03 — Orchestration
 
 ## Goal
-Wire the standards agent to an ADR author agent behind an explicit
-orchestrator. The orchestrator accepts a submission, passes the standards
-findings to the author, and returns a draft ADR for review. This is the
-multi-agent pattern the workshop exists to demonstrate.
+Wire the standards, research, and ADR author agents behind an explicit
+orchestrator. The orchestrator accepts a submission, validates internal
+standards findings, optionally gathers allowlisted external research, and
+returns a draft ADR for review. This is the multi-agent pattern the workshop
+exists to demonstrate.
 
 ## Prerequisites
 - Completed [Module 00](../00-setup/README.md), including a successful validator run
 - A synthetic submission from `data/synthetic/submissions`
+- An existing Foundry web-search project connection, unless research is skipped
 
 ## Run
 From the repository root:
@@ -16,6 +18,7 @@ From the repository root:
 ```bash
 python -m pip install -r 03-orchestration/requirements.txt
 export AZURE_RESOURCE_GROUP=<your-resource-group>
+export FOUNDRY_WEB_SEARCH_CONNECTION_ID=<project-connection-id>
 python 03-orchestration/run.py \
   data/synthetic/submissions/SUB-002-quickship-document-service.md
 ```
@@ -23,6 +26,30 @@ python 03-orchestration/run.py \
 You can pass `--project-endpoint` and `--model-deployment` instead of using
 `AZURE_RESOURCE_GROUP`. Authentication uses `DefaultAzureCredential` and the
 `https://ai.azure.com/.default` scope required by the Foundry project endpoint.
+The web-search connection is optional infrastructure and is not provisioned by
+Module 00.
+
+Approved research domains are stored in
+[`research-allowlist.json`](research-allowlist.json). Replace its example
+domains with the customer's approved sources, or select another config file:
+
+```bash
+python 03-orchestration/run.py \
+  --research-allowlist path/to/research-allowlist.json \
+  data/synthetic/submissions/SUB-002-quickship-document-service.md
+```
+
+The config is a JSON object with an `allowed_domains` string array. Values are
+hostnames without a scheme or path. The same domains constrain the Foundry
+web-search tool and validate every returned citation URL.
+
+When the allowlist or search connection has not been approved, keep the rest of
+the chain runnable with `--skip-research`:
+
+```bash
+python 03-orchestration/run.py --skip-research \
+  data/synthetic/submissions/SUB-002-quickship-document-service.md
+```
 
 Use `--standards-directory` to point the standards agent at your own Markdown
 standards library instead of the synthetic workshop standards:
@@ -38,7 +65,7 @@ formatting is intentionally deferred to Module 05. Validation summaries and
 elapsed times for both agent calls and the total orchestration are written to
 standard error.
 
-Add `--keep-agent` when participants need to inspect both agents,
+Add `--keep-agent` when participants need to inspect all three agents,
 conversations, and runs in the Microsoft Foundry portal:
 
 ```bash
@@ -55,12 +82,17 @@ The flow is deliberately linear:
 
 1. The standards agent reviews the submission and returns a validated
    `ConformanceReport`.
-2. The orchestrator passes that Pydantic model to the ADR author agent.
-3. The author returns a validated `ArchitectureDecisionRecord`.
+2. Unless skipped, the research agent takes the report's technology name and
+  returns validated `TechnologyResearch`. Every claim has one allowlisted URL
+  citation.
+3. The orchestrator passes both Pydantic models to the ADR author agent.
+4. The author returns a validated `ArchitectureDecisionRecord`.
 
-The `ConformanceReport` is the typed contract between agents. The author sees
-the report rather than the original submission, which makes the handoff easy to
-inspect, test, and extend during the workshop.
+`ConformanceReport` and `TechnologyResearch` are typed contracts between agents.
+The standards library remains authoritative. Research can inform ADR context
+and consequences, but it cannot override a standards finding. With
+`--skip-research`, the author receives no research object and works only from
+the conformance report.
 
 ## Test
 
@@ -70,6 +102,6 @@ python -m unittest test_run.py
 ```
 
 ## What you should understand by the end
-Where the orchestration boundary sits, how state passes between agents,
-and why separating standards evaluation from ADR authoring is preferable
-to one large prompt.
+Where the orchestration boundary sits, how typed state passes between agents,
+how an optional external dependency can be skipped, and why standards remain
+authoritative when external context is available.

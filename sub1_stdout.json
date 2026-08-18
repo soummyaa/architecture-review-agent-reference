@@ -1,0 +1,28 @@
+{
+  "submission_id": "SUB-001",
+  "technology": "Northwind Analytics Cloud",
+  "title": "Adoption of Northwind Analytics Cloud for analytics and dashboarding",
+  "status": "proposed",
+  "decision": "rejected",
+  "context": "Northwind Analytics Cloud is a vendor-hosted SaaS analytics and dashboarding platform with SAML federation, JDBC-based warehouse connectivity, a REST admin API, North America data storage, and JSON export of dashboards and dataset definitions. The conformance review shows multiple unresolved requirements across hosting, residency, identity, and integration controls.",
+  "standards_assessment": "The submission conforms to some transport, encryption, and human-authentication requirements, but it also includes several findings that do not conform to mandatory standards. At least one non-conformance is structural and requires a design change rather than a contractual or procedural condition: the warehouse integration uses a direct JDBC-style connection between systems owned by different teams, which is not an approved integration pattern under STD-003 Section 1. Additional non-conformances include long-lived local service credentials and permanently assigned local administrator access. Because structural non-conformance is present, the appropriate decision is rejected.",
+  "decision_statement": "Do not approve Northwind Analytics Cloud in its current design. The proposed solution must be redesigned to remove the prohibited JDBC-style direct integration and to address the remaining hosting, residency, identity, and operational gaps before resubmission.",
+  "decision_drivers": [
+    "Vendor-hosted SaaS is only acceptable when all Section 3 conditions are met, and the submission does not fully evidence them.",
+    "Internal-classified data residency within the continental United States is not contractually guaranteed for backups, DR replicas, and support access.",
+    "The warehouse connection uses a direct JDBC-style integration between different teams, which is explicitly not approved.",
+    "Service-to-service authentication relies on a long-lived service account password rather than workload identity.",
+    "Administrative access is based on standing local administrator accounts rather than time-bound requested access."
+  ],
+  "conditions": [],
+  "positive_consequences": [
+    "The review board has a clear basis to require redesign before adoption.",
+    "Rejecting the submission prevents approval of an integration pattern that conflicts with the approved standards.",
+    "A resubmission can focus on replacing the prohibited direct connector and closing the outstanding control gaps."
+  ],
+  "negative_consequences": [
+    "The platform cannot be adopted as proposed.",
+    "The project will need redesign effort to replace the direct JDBC-style integration and rework privileged access and authentication.",
+    "Implementation timelines may be extended while the vendor and implementation team address the outstanding standard requirements."
+  ]
+}
