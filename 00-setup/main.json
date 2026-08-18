@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "17766622134331031893"
+      "templateHash": "18122662344990708844"
     }
   },
   "parameters": {
@@ -90,7 +90,7 @@
       "type": "bool",
       "defaultValue": false,
       "metadata": {
-        "description": "Deploy a Linux jump box with a public IP in the private network."
+        "description": "Deploy a Linux jump box reachable through Azure Bastion or an existing network path."
       }
     },
     "sshPublicKey": {
@@ -117,7 +117,6 @@
     "privateEndpointSubnetName": "private-endpoints",
     "jumpBoxSubnetName": "jumpbox",
     "jumpBoxName": "[format('{0}-jumpbox', parameters('namePrefix'))]",
-    "jumpBoxPublicIpName": "[format('{0}-jumpbox-pip', parameters('namePrefix'))]",
     "jumpBoxNicName": "[format('{0}-jumpbox-nic', parameters('namePrefix'))]",
     "jumpBoxNsgName": "[format('{0}-jumpbox-nsg', parameters('namePrefix'))]",
     "azureAiDeveloperRoleId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '64702f94-c441-49e6-a78b-ef80e0188fee')]",
@@ -169,7 +168,7 @@
       "properties": {
         "allowProjectManagement": true,
         "customSubDomainName": "[variables('foundryName')]",
-        "publicNetworkAccess": "[if(parameters('enablePrivateNetworking'), 'Disabled', 'Enabled')]"
+        "publicNetworkAccess": "Enabled"
       }
     },
     {
@@ -269,6 +268,7 @@
       "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
       "apiVersion": "2024-06-01",
       "name": "[format('{0}/{1}', 'privatelink.cognitiveservices.azure.com', format('{0}-link', variables('virtualNetworkName')))]",
+      "location": "global",
       "properties": {
         "registrationEnabled": false,
         "virtualNetwork": {
@@ -285,6 +285,7 @@
       "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
       "apiVersion": "2024-06-01",
       "name": "[format('{0}/{1}', 'privatelink.vaultcore.azure.net', format('{0}-link', variables('virtualNetworkName')))]",
+      "location": "global",
       "properties": {
         "registrationEnabled": false,
         "virtualNetwork": {
@@ -301,6 +302,7 @@
       "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
       "apiVersion": "2024-06-01",
       "name": "[format('{0}/{1}', format('privatelink.blob.{0}', environment().suffixes.storage), format('{0}-link', variables('virtualNetworkName')))]",
+      "location": "global",
       "properties": {
         "registrationEnabled": false,
         "virtualNetwork": {
@@ -468,26 +470,13 @@
               "direction": "Inbound",
               "priority": 100,
               "protocol": "Tcp",
-              "sourceAddressPrefix": "Internet",
+              "sourceAddressPrefix": "VirtualNetwork",
               "sourcePortRange": "*",
               "destinationAddressPrefix": "*",
               "destinationPortRange": "22"
             }
           }
         ]
-      }
-    },
-    {
-      "condition": "[and(parameters('enablePrivateNetworking'), parameters('deployJumpBox'))]",
-      "type": "Microsoft.Network/publicIPAddresses",
-      "apiVersion": "2024-05-01",
-      "name": "[variables('jumpBoxPublicIpName')]",
-      "location": "[parameters('location')]",
-      "sku": {
-        "name": "Standard"
-      },
-      "properties": {
-        "publicIPAllocationMethod": "Static"
       }
     },
     {
@@ -504,9 +493,6 @@
               "privateIPAllocationMethod": "Dynamic",
               "subnet": {
                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('jumpBoxSubnetName'))]"
-              },
-              "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('jumpBoxPublicIpName'))]"
               }
             }
           }
@@ -517,7 +503,6 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Network/networkSecurityGroups', variables('jumpBoxNsgName'))]",
-        "[resourceId('Microsoft.Network/publicIPAddresses', variables('jumpBoxPublicIpName'))]",
         "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
       ]
     },
@@ -613,6 +598,75 @@
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
       ]
+    },
+    {
+      "condition": "[parameters('enablePrivateNetworking')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "disable-foundry-public-access",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "foundryName": {
+            "value": "[variables('foundryName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "11987057272398518828"
+            }
+          },
+          "parameters": {
+            "foundryName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the provisioned Microsoft Foundry account."
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region of the Microsoft Foundry account."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts",
+              "apiVersion": "2025-06-01",
+              "name": "[parameters('foundryName')]",
+              "location": "[parameters('location')]",
+              "kind": "AIServices",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "sku": {
+                "name": "S0"
+              },
+              "properties": {
+                "allowProjectManagement": true,
+                "customSubDomainName": "[parameters('foundryName')]",
+                "publicNetworkAccess": "Disabled"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryName'))]",
+        "[resourceId('Microsoft.Network/privateEndpoints/privateDnsZoneGroups', format('{0}-pe', variables('foundryName')), 'default')]"
+      ]
     }
   ],
   "outputs": {
@@ -659,10 +713,6 @@
     "privateEndpointSubnetResourceId": {
       "type": "string",
       "value": "[if(parameters('enablePrivateNetworking'), resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('privateEndpointSubnetName')), '')]"
-    },
-    "jumpBoxPublicIpAddress": {
-      "type": "string",
-      "value": "[if(and(parameters('enablePrivateNetworking'), parameters('deployJumpBox')), coalesce(tryGet(tryGet(if(and(parameters('enablePrivateNetworking'), parameters('deployJumpBox')), reference(resourceId('Microsoft.Network/publicIPAddresses', variables('jumpBoxPublicIpName')), '2024-05-01', 'full'), null()), 'properties'), 'ipAddress'), ''), '')]"
     }
   }
 }

@@ -24,15 +24,16 @@ mode the template creates a virtual network, a dedicated private endpoint
 subnet, private DNS zones, and private endpoints for Microsoft Foundry, Key
 Vault, and storage. Public network access to those services is disabled.
 Private mode requires network connectivity into the virtual network: either
-peering from a corporate network, a VPN, or the optional jump box. The
-validator and all agent modules must be run from inside that network when
-private mode is enabled.
+peering from a corporate network, a VPN, or Azure Bastion. The optional jump
+box is reached through one of those paths. The validator and all agent modules
+must be run from inside that network when private mode is enabled.
 
 For quick local development, pass `enablePrivateNetworking=false`. This keeps
 the existing public service endpoints and does not create the private network.
 
 To deploy the optional Linux jump box in private mode, provide an SSH public
-key and set `deployJumpBox=true`:
+key and set `deployJumpBox=true`. The VM has no public IP. Connect through Azure
+Bastion or an existing network path such as corporate peering or a VPN:
 
 ```bash
 az deployment group create \
@@ -48,8 +49,8 @@ az deployment group create \
 ```
 
 The deployment outputs the virtual network and private endpoint subnet
-resource IDs for later peering or jump-box integration. The jump box output
-also includes its public IP address. SSH uses the supplied key and no password.
+resource IDs for later peering or jump-box integration. SSH uses the supplied
+key and no password.
 
 ## Run Standalone
 

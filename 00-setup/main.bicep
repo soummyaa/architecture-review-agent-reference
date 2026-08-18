@@ -36,7 +36,7 @@ param sharepointSitePath string
 @description('Deploy private endpoints, private DNS, and disable public access to the platform services.')
 param enablePrivateNetworking bool = true
 
-@description('Deploy a Linux jump box with a public IP in the private network.')
+@description('Deploy a Linux jump box reachable through Azure Bastion or an existing network path.')
 param deployJumpBox bool = false
 
 @description('SSH public key for the optional Linux jump box.')
@@ -53,7 +53,6 @@ var virtualNetworkName = '${namePrefix}-vnet'
 var privateEndpointSubnetName = 'private-endpoints'
 var jumpBoxSubnetName = 'jumpbox'
 var jumpBoxName = '${namePrefix}-jumpbox'
-var jumpBoxPublicIpName = '${namePrefix}-jumpbox-pip'
 var jumpBoxNicName = '${namePrefix}-jumpbox-nic'
 var jumpBoxNsgName = '${namePrefix}-jumpbox-nsg'
 var azureAiDeveloperRoleId = subscriptionResourceId(
@@ -119,7 +118,7 @@ resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   properties: {
     allowProjectManagement: true
     customSubDomainName: foundryName
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled'
   }
 }
 
@@ -204,6 +203,7 @@ resource storagePrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = 
 resource foundryPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (enablePrivateNetworking) {
   parent: foundryPrivateDnsZone
   name: '${virtualNetworkName}-link'
+  location: 'global'
   properties: {
     registrationEnabled: false
     virtualNetwork: {
@@ -215,6 +215,7 @@ resource foundryPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNet
 resource keyVaultPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (enablePrivateNetworking) {
   parent: keyVaultPrivateDnsZone
   name: '${virtualNetworkName}-link'
+  location: 'global'
   properties: {
     registrationEnabled: false
     virtualNetwork: {
@@ -226,6 +227,7 @@ resource keyVaultPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNe
 resource storagePrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (enablePrivateNetworking) {
   parent: storagePrivateDnsZone
   name: '${virtualNetworkName}-link'
+  location: 'global'
   properties: {
     registrationEnabled: false
     virtualNetwork: {
@@ -312,6 +314,17 @@ resource foundryPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateD
   }
 }
 
+module disableFoundryPublicAccess 'disable-foundry-public-access.bicep' = if (enablePrivateNetworking) {
+  name: 'disable-foundry-public-access'
+  params: {
+    foundryName: foundry.name
+    location: location
+  }
+  dependsOn: [
+    foundryPrivateDnsZoneGroup
+  ]
+}
+
 resource keyVaultPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (enablePrivateNetworking) {
   parent: keyVaultPrivateEndpoint
   name: 'default'
@@ -354,24 +367,13 @@ resource jumpBoxNsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = if (e
           direction: 'Inbound'
           priority: 100
           protocol: 'Tcp'
-          sourceAddressPrefix: 'Internet'
+          sourceAddressPrefix: 'VirtualNetwork'
           sourcePortRange: '*'
           destinationAddressPrefix: '*'
           destinationPortRange: '22'
         }
       }
     ]
-  }
-}
-
-resource jumpBoxPublicIp 'Microsoft.Network/publicIPAddresses@2024-05-01' = if (enablePrivateNetworking && deployJumpBox) {
-  name: jumpBoxPublicIpName
-  location: location
-  sku: {
-    name: 'Standard'
-  }
-  properties: {
-    publicIPAllocationMethod: 'Static'
   }
 }
 
@@ -386,9 +388,6 @@ resource jumpBoxNic 'Microsoft.Network/networkInterfaces@2024-05-01' = if (enabl
           privateIPAllocationMethod: 'Dynamic'
           subnet: {
             id: jumpBoxSubnet.id
-          }
-          publicIPAddress: {
-            id: jumpBoxPublicIp.id
           }
         }
       }
@@ -486,4 +485,3 @@ output sharepointSitePath string = sharepointSitePath
 output storageAccountName string = storageAccount.name
 output virtualNetworkResourceId string = enablePrivateNetworking ? virtualNetwork.id : ''
 output privateEndpointSubnetResourceId string = enablePrivateNetworking ? privateEndpointSubnet.id : ''
-output jumpBoxPublicIpAddress string = enablePrivateNetworking && deployJumpBox ? (jumpBoxPublicIp.?properties.?ipAddress ?? '') : ''
