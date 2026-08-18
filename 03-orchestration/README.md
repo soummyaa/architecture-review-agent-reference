@@ -1,19 +1,53 @@
 # 03 — Orchestration
 
 ## Goal
-Add a gap analysis agent that consumes the intake output and the standards
-findings, wired behind an explicit orchestrator. This is the multi-agent
-pattern the workshop exists to demonstrate.
+Wire the standards agent to an ADR author agent behind an explicit
+orchestrator. The orchestrator accepts a submission, passes the standards
+findings to the author, and returns a draft ADR for review. This is the
+multi-agent pattern the workshop exists to demonstrate.
 
 ## Prerequisites
-- 01 and 02 running successfully
+- Completed [Module 00](../00-setup/README.md), including a successful validator run
+- A synthetic submission from `data/synthetic/submissions`
 
 ## Run
-python 03-orchestration/run.py
---submission data/synthetic/submissions/
+From the repository root:
 
-SUB-002-quickship-document-service.md
+```bash
+python -m pip install -r 03-orchestration/requirements.txt
+export AZURE_RESOURCE_GROUP=<your-resource-group>
+python 03-orchestration/run.py \
+  data/synthetic/submissions/SUB-002-quickship-document-service.md
+```
+
+You can pass `--project-endpoint` and `--model-deployment` instead of using
+`AZURE_RESOURCE_GROUP`. Authentication uses `DefaultAzureCredential` and the
+`https://ai.azure.com/.default` scope required by the Foundry project endpoint.
+
+The command writes structured ADR content as JSON to standard output. Document
+formatting is intentionally deferred to Module 05.
+
+## How the orchestration works
+
+The flow is deliberately linear:
+
+1. The standards agent reviews the submission and returns a validated
+   `ConformanceReport`.
+2. The orchestrator passes that Pydantic model to the ADR author agent.
+3. The author returns a validated `ArchitectureDecisionRecord`.
+
+The `ConformanceReport` is the typed contract between agents. The author sees
+the report rather than the original submission, which makes the handoff easy to
+inspect, test, and extend during the workshop.
+
+## Test
+
+```bash
+cd 03-orchestration
+python -m unittest test_run.py
+```
 
 ## What you should understand by the end
 Where the orchestration boundary sits, how state passes between agents,
-and why decomposing into several agents beats one large prompt.
+and why separating standards evaluation from ADR authoring is preferable
+to one large prompt.

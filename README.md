@@ -15,10 +15,11 @@ it against the organization's architecture standards, researches the
 technology, writes up where it falls short, and produces an Architecture
 Decision Record.
 
-This system does the first pass: reads the submission, evaluates it
-against a standards library, researches within approved sources, drafts
-the ADR, reviews its own draft, and files the result where the review
-board already works.
+The live build runs a complete three-agent loop behind an orchestrator:
+the standards agent evaluates the submission, the ADR author agent drafts
+the decision record, and the reviewer agent checks the draft before the
+reviewed ADR is returned. Intake and approved-source research remain in
+the repository as reference implementations participants can read and pull.
 
 It assists a review board. It does not replace one.
 
@@ -26,13 +27,13 @@ It assists a review board. It does not replace one.
 
 | Module | What it builds | Status |
 |---|---|---|
-| `00-setup` | Foundry project, model deployment, Key Vault, storage, plus a validator that proves access | Working |
-| `01-standards-agent` | One agent grounded on the standards library, returning findings with section-level citations | Working |
-| `02-intake` | Structured extraction from an unstructured submission into a typed schema | Scaffolded |
-| `03-orchestration` | Gap analysis agent wired to the standards agent behind an explicit orchestrator | Scaffolded |
-| `04-research` | External research restricted to a domain allowlist, every claim cited | Scaffolded |
-| `05-adr-generation` | Render findings into a DOCX ADR from a template, write back to SharePoint | Scaffolded |
-| `06-review-eval` | Critic agent over the draft, plus an evaluation harness | Scaffolded |
+| `00-setup` | Foundry project, model deployment, Key Vault, storage, plus a validator that proves access | Live build |
+| `01-standards-agent` | One agent grounded on the standards library, returning findings with section-level citations | Live build |
+| `02-intake` | Structured extraction from an unstructured submission into a typed schema | Reference |
+| `03-orchestration` | Standards and ADR author agents wired behind an explicit orchestrator | Live build |
+| `04-research` | External research restricted to a domain allowlist, every claim cited | Reference |
+| `05-adr-generation` | ADR author output rendered locally as a DOCX; optional SharePoint write-back | Live build |
+| `06-review-eval` | Reviewer agent over the draft, plus an evaluation harness | Live build (harness is reference) |
 
 ## Getting started
 
