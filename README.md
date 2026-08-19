@@ -27,7 +27,7 @@ It assists a review board. It does not replace one.
 
 | Module | What it builds | Status |
 |---|---|---|
-| `00-setup` | Foundry project, model deployment, Key Vault, storage, plus a validator that proves access | Live build |
+| `00-setup` | Foundry project and model deployment, plus a validator that proves access | Live build |
 | `01-standards-agent` | One agent grounded on the standards library, returning findings with section-level citations | Live build |
 | `02-intake` | Structured extraction from an unstructured submission into a typed schema | Reference |
 | `03-orchestration` | Standards and ADR author agents wired behind an explicit orchestrator | Live build |
@@ -45,8 +45,7 @@ Two things that are easy to miss and cost the most time:
 
 - **Data-plane RBAC is separate from subscription ownership.** Being Owner
   grants you nothing at the data plane. The Bicep assigns Azure AI
-  Developer, Key Vault Secrets User, and Storage Blob Data Contributor to
-  a `principalId` you pass in.
+  Developer to a `principalId` you pass in.
 - **Foundry and SharePoint must be in the same tenant.** A Graph token
   issued for one tenant cannot read a site in another.
 
@@ -68,7 +67,8 @@ is no evidence the system can say yes.
 ## Conventions
 
 - Python and Bicep. No Terraform.
-- Managed identity and Key Vault. No keys in code or `.env` files.
+- Managed identity through `DefaultAzureCredential`. No keys in code or `.env`
+  files.
 - Each module runs standalone and has its own README.
 - Readability over cleverness. People will read this code and extend it.
 - No customer names, tenant identifiers, or real URLs anywhere in this

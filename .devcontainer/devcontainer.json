@@ -8,7 +8,7 @@
   "containerEnv": {
     "AZURE_RESOURCE_GROUP": "rg-architecture-review-workshop"
   },
-  "postCreateCommand": "python -m pip install -r 00-setup/requirements.txt -r 01-standards-agent/requirements.txt && az bicep install",
+  "postCreateCommand": "python -m pip install -r 00-setup/requirements.txt -r 01-standards-agent/requirements.txt -r 02-intake/requirements.txt -r 03-orchestration/requirements.txt -r 04-research/requirements.txt -r 05-adr-generation/requirements.txt -r 06-review-eval/requirements.txt && az bicep install",
   "customizations": {
     "vscode": {
       "extensions": [

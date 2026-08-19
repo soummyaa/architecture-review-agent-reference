@@ -36,6 +36,15 @@ param sharepointSitePath string
 @description('Deploy private endpoints, private DNS, and disable public access to the platform services.')
 param enablePrivateNetworking bool = true
 
+@description('Resource ID of an existing virtual network. Supply with existingPrivateEndpointSubnetResourceId to use landing-zone networking.')
+param existingVirtualNetworkResourceId string = ''
+
+@description('Resource ID of an existing private endpoint subnet. Supply with existingVirtualNetworkResourceId to use landing-zone networking.')
+param existingPrivateEndpointSubnetResourceId string = ''
+
+@description('Create and link private DNS zones. Set to false when private DNS is managed centrally.')
+param createPrivateDnsZones bool = true
+
 @description('Deploy a Linux jump box reachable through Azure Bastion or an existing network path.')
 param deployJumpBox bool = false
 
@@ -47,28 +56,22 @@ param jumpBoxAdminUsername string = 'workshopadmin'
 
 var uniqueSuffix = uniqueString(resourceGroup().id)
 var foundryName = take('${namePrefix}-${uniqueSuffix}', 64)
-var keyVaultName = 'kv${uniqueSuffix}'
-var storageName = 'ar${uniqueSuffix}'
 var virtualNetworkName = '${namePrefix}-vnet'
 var privateEndpointSubnetName = 'private-endpoints'
 var jumpBoxSubnetName = 'jumpbox'
 var jumpBoxName = '${namePrefix}-jumpbox'
 var jumpBoxNicName = '${namePrefix}-jumpbox-nic'
 var jumpBoxNsgName = '${namePrefix}-jumpbox-nsg'
+var useExistingNetworking = !empty(existingVirtualNetworkResourceId) && !empty(existingPrivateEndpointSubnetResourceId)
+var deployManagedVirtualNetwork = enablePrivateNetworking && !useExistingNetworking
+var virtualNetworkResourceId = useExistingNetworking ? existingVirtualNetworkResourceId : virtualNetwork.id
+var privateEndpointSubnetResourceId = useExistingNetworking ? existingPrivateEndpointSubnetResourceId : privateEndpointSubnet.id
 var azureAiDeveloperRoleId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',
   '64702f94-c441-49e6-a78b-ef80e0188fee'
 )
-var keyVaultSecretsUserRoleId = subscriptionResourceId(
-  'Microsoft.Authorization/roleDefinitions',
-  '4633458b-17de-408a-b874-0445c86b69e6'
-)
-var storageBlobDataContributorRoleId = subscriptionResourceId(
-  'Microsoft.Authorization/roleDefinitions',
-  'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-)
 
-resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = if (enablePrivateNetworking) {
+resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = if (deployManagedVirtualNetwork) {
   name: virtualNetworkName
   location: location
   properties: {
@@ -95,12 +98,12 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = if (ena
   }
 }
 
-resource privateEndpointSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existing = if (enablePrivateNetworking) {
+resource privateEndpointSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existing = if (deployManagedVirtualNetwork) {
   parent: virtualNetwork
   name: privateEndpointSubnetName
 }
 
-resource jumpBoxSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existing = if (enablePrivateNetworking && deployJumpBox) {
+resource jumpBoxSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existing = if (deployManagedVirtualNetwork && deployJumpBox) {
   parent: virtualNetwork
   name: jumpBoxSubnetName
 }
@@ -122,51 +125,15 @@ resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = {
   name: foundryName
 }
 
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
-  name: keyVaultName
-  location: location
-  properties: {
-    accessPolicies: []
-    enableRbacAuthorization: true
-    enableSoftDelete: true
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    sku: {
-      family: 'A'
-      name: 'standard'
-    }
-    softDeleteRetentionInDays: 7
-    tenantId: subscription().tenantId
-  }
-}
-
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
-  name: storageName
-  location: location
-  kind: 'StorageV2'
-  sku: {
-    name: 'Standard_LRS'
-  }
-  properties: {
-    allowBlobPublicAccess: false
-    allowSharedKeyAccess: false
-    minimumTlsVersion: 'TLS1_2'
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    supportsHttpsTrafficOnly: true
-  }
-}
-
 module privateNetworking 'private-networking.bicep' = if (enablePrivateNetworking) {
   name: 'private-networking'
   params: {
     location: location
-    virtualNetworkResourceId: virtualNetwork.id
-    privateEndpointSubnetResourceId: privateEndpointSubnet.id
+    virtualNetworkResourceId: virtualNetworkResourceId
+    privateEndpointSubnetResourceId: privateEndpointSubnetResourceId
+    createPrivateDnsZones: createPrivateDnsZones
     foundryName: foundryProvisioning.outputs.foundryName
     foundryResourceId: foundryProvisioning.outputs.foundryResourceId
-    keyVaultName: keyVault.name
-    keyVaultResourceId: keyVault.id
-    storageAccountName: storageAccount.name
-    storageAccountResourceId: storageAccount.id
   }
   // The account API can return Accepted before provisioning is complete, so the module boundary is intentional.
   dependsOn: [
@@ -186,7 +153,7 @@ module disableFoundryPublicAccess 'disable-foundry-public-access.bicep' = if (en
   ]
 }
 
-resource jumpBoxNsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = if (enablePrivateNetworking && deployJumpBox) {
+resource jumpBoxNsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = if (deployManagedVirtualNetwork && deployJumpBox) {
   name: jumpBoxNsgName
   location: location
   properties: {
@@ -208,7 +175,7 @@ resource jumpBoxNsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = if (e
   }
 }
 
-resource jumpBoxNic 'Microsoft.Network/networkInterfaces@2024-05-01' = if (enablePrivateNetworking && deployJumpBox) {
+resource jumpBoxNic 'Microsoft.Network/networkInterfaces@2024-05-01' = if (deployManagedVirtualNetwork && deployJumpBox) {
   name: jumpBoxNicName
   location: location
   properties: {
@@ -229,7 +196,7 @@ resource jumpBoxNic 'Microsoft.Network/networkInterfaces@2024-05-01' = if (enabl
   }
 }
 
-resource jumpBox 'Microsoft.Compute/virtualMachines@2024-07-01' = if (enablePrivateNetworking && deployJumpBox) {
+resource jumpBox 'Microsoft.Compute/virtualMachines@2024-07-01' = if (deployManagedVirtualNetwork && deployJumpBox) {
   name: jumpBoxName
   location: location
   properties: {
@@ -290,32 +257,12 @@ resource foundryRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-
   ]
 }
 
-resource keyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(keyVault.id, principalId, keyVaultSecretsUserRoleId)
-  scope: keyVault
-  properties: {
-    principalId: principalId
-    roleDefinitionId: keyVaultSecretsUserRoleId
-  }
-}
-
-resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, principalId, storageBlobDataContributorRoleId)
-  scope: storageAccount
-  properties: {
-    principalId: principalId
-    roleDefinitionId: storageBlobDataContributorRoleId
-  }
-}
-
 output foundryProjectEndpoint string = 'https://${foundryProvisioning.outputs.foundryName}.services.ai.azure.com/api/projects/${foundryProvisioning.outputs.projectName}'
 output foundryResourceId string = foundry.id
 output foundryResourceName string = foundry.name
 output modelEndpoint string = 'https://${foundry.name}.openai.azure.com/'
 output modelDeploymentName string = foundryProvisioning.outputs.modelDeploymentName
-output keyVaultName string = keyVault.name
 output sharepointHostname string = sharepointHostname
 output sharepointSitePath string = sharepointSitePath
-output storageAccountName string = storageAccount.name
-output virtualNetworkResourceId string = enablePrivateNetworking ? virtualNetwork.id : ''
-output privateEndpointSubnetResourceId string = enablePrivateNetworking ? privateEndpointSubnet.id : ''
+output virtualNetworkResourceId string = enablePrivateNetworking ? virtualNetworkResourceId : ''
+output privateEndpointSubnetResourceId string = enablePrivateNetworking ? privateEndpointSubnetResourceId : ''

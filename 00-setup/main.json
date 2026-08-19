@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "15345591615400931208"
+      "templateHash": "12711338425814137717"
     }
   },
   "parameters": {
@@ -86,6 +86,27 @@
         "description": "Deploy private endpoints, private DNS, and disable public access to the platform services."
       }
     },
+    "existingVirtualNetworkResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Resource ID of an existing virtual network. Supply with existingPrivateEndpointSubnetResourceId to use landing-zone networking."
+      }
+    },
+    "existingPrivateEndpointSubnetResourceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Resource ID of an existing private endpoint subnet. Supply with existingVirtualNetworkResourceId to use landing-zone networking."
+      }
+    },
+    "createPrivateDnsZones": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Create and link private DNS zones. Set to false when private DNS is managed centrally."
+      }
+    },
     "deployJumpBox": {
       "type": "bool",
       "defaultValue": false,
@@ -111,21 +132,21 @@
   "variables": {
     "uniqueSuffix": "[uniqueString(resourceGroup().id)]",
     "foundryName": "[take(format('{0}-{1}', parameters('namePrefix'), variables('uniqueSuffix')), 64)]",
-    "keyVaultName": "[format('kv{0}', variables('uniqueSuffix'))]",
-    "storageName": "[format('ar{0}', variables('uniqueSuffix'))]",
     "virtualNetworkName": "[format('{0}-vnet', parameters('namePrefix'))]",
     "privateEndpointSubnetName": "private-endpoints",
     "jumpBoxSubnetName": "jumpbox",
     "jumpBoxName": "[format('{0}-jumpbox', parameters('namePrefix'))]",
     "jumpBoxNicName": "[format('{0}-jumpbox-nic', parameters('namePrefix'))]",
     "jumpBoxNsgName": "[format('{0}-jumpbox-nsg', parameters('namePrefix'))]",
-    "azureAiDeveloperRoleId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '64702f94-c441-49e6-a78b-ef80e0188fee')]",
-    "keyVaultSecretsUserRoleId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
-    "storageBlobDataContributorRoleId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]"
+    "useExistingNetworking": "[and(not(empty(parameters('existingVirtualNetworkResourceId'))), not(empty(parameters('existingPrivateEndpointSubnetResourceId'))))]",
+    "deployManagedVirtualNetwork": "[and(parameters('enablePrivateNetworking'), not(variables('useExistingNetworking')))]",
+    "virtualNetworkResourceId": "[if(variables('useExistingNetworking'), parameters('existingVirtualNetworkResourceId'), resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName')))]",
+    "privateEndpointSubnetResourceId": "[if(variables('useExistingNetworking'), parameters('existingPrivateEndpointSubnetResourceId'), resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('privateEndpointSubnetName')))]",
+    "azureAiDeveloperRoleId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '64702f94-c441-49e6-a78b-ef80e0188fee')]"
   },
   "resources": [
     {
-      "condition": "[parameters('enablePrivateNetworking')]",
+      "condition": "[variables('deployManagedVirtualNetwork')]",
       "type": "Microsoft.Network/virtualNetworks",
       "apiVersion": "2024-05-01",
       "name": "[variables('virtualNetworkName')]",
@@ -154,42 +175,7 @@
       }
     },
     {
-      "type": "Microsoft.KeyVault/vaults",
-      "apiVersion": "2023-07-01",
-      "name": "[variables('keyVaultName')]",
-      "location": "[parameters('location')]",
-      "properties": {
-        "accessPolicies": [],
-        "enableRbacAuthorization": true,
-        "enableSoftDelete": true,
-        "publicNetworkAccess": "[if(parameters('enablePrivateNetworking'), 'Disabled', 'Enabled')]",
-        "sku": {
-          "family": "A",
-          "name": "standard"
-        },
-        "softDeleteRetentionInDays": 7,
-        "tenantId": "[subscription().tenantId]"
-      }
-    },
-    {
-      "type": "Microsoft.Storage/storageAccounts",
-      "apiVersion": "2023-05-01",
-      "name": "[variables('storageName')]",
-      "location": "[parameters('location')]",
-      "kind": "StorageV2",
-      "sku": {
-        "name": "Standard_LRS"
-      },
-      "properties": {
-        "allowBlobPublicAccess": false,
-        "allowSharedKeyAccess": false,
-        "minimumTlsVersion": "TLS1_2",
-        "publicNetworkAccess": "[if(parameters('enablePrivateNetworking'), 'Disabled', 'Enabled')]",
-        "supportsHttpsTrafficOnly": true
-      }
-    },
-    {
-      "condition": "[and(parameters('enablePrivateNetworking'), parameters('deployJumpBox'))]",
+      "condition": "[and(variables('deployManagedVirtualNetwork'), parameters('deployJumpBox'))]",
       "type": "Microsoft.Network/networkSecurityGroups",
       "apiVersion": "2024-05-01",
       "name": "[variables('jumpBoxNsgName')]",
@@ -213,7 +199,7 @@
       }
     },
     {
-      "condition": "[and(parameters('enablePrivateNetworking'), parameters('deployJumpBox'))]",
+      "condition": "[and(variables('deployManagedVirtualNetwork'), parameters('deployJumpBox'))]",
       "type": "Microsoft.Network/networkInterfaces",
       "apiVersion": "2024-05-01",
       "name": "[variables('jumpBoxNicName')]",
@@ -240,7 +226,7 @@
       ]
     },
     {
-      "condition": "[and(parameters('enablePrivateNetworking'), parameters('deployJumpBox'))]",
+      "condition": "[and(variables('deployManagedVirtualNetwork'), parameters('deployJumpBox'))]",
       "type": "Microsoft.Compute/virtualMachines",
       "apiVersion": "2024-07-01",
       "name": "[variables('jumpBoxName')]",
@@ -304,32 +290,6 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments', 'provision-foundry')]"
-      ]
-    },
-    {
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
-      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), parameters('principalId'), variables('keyVaultSecretsUserRoleId'))]",
-      "properties": {
-        "principalId": "[parameters('principalId')]",
-        "roleDefinitionId": "[variables('keyVaultSecretsUserRoleId')]"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
-      ]
-    },
-    {
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]",
-      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')), parameters('principalId'), variables('storageBlobDataContributorRoleId'))]",
-      "properties": {
-        "principalId": "[parameters('principalId')]",
-        "roleDefinitionId": "[variables('storageBlobDataContributorRoleId')]"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
       ]
     },
     {
@@ -510,28 +470,19 @@
             "value": "[parameters('location')]"
           },
           "virtualNetworkResourceId": {
-            "value": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+            "value": "[variables('virtualNetworkResourceId')]"
           },
           "privateEndpointSubnetResourceId": {
-            "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('privateEndpointSubnetName'))]"
+            "value": "[variables('privateEndpointSubnetResourceId')]"
+          },
+          "createPrivateDnsZones": {
+            "value": "[parameters('createPrivateDnsZones')]"
           },
           "foundryName": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'provision-foundry'), '2025-04-01').outputs.foundryName.value]"
           },
           "foundryResourceId": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'provision-foundry'), '2025-04-01').outputs.foundryResourceId.value]"
-          },
-          "keyVaultName": {
-            "value": "[variables('keyVaultName')]"
-          },
-          "keyVaultResourceId": {
-            "value": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
-          },
-          "storageAccountName": {
-            "value": "[variables('storageName')]"
-          },
-          "storageAccountResourceId": {
-            "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
           }
         },
         "template": {
@@ -541,7 +492,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.46.1.21595",
-              "templateHash": "6336124955136232750"
+              "templateHash": "15485016726602093711"
             }
           },
           "parameters": {
@@ -563,6 +514,13 @@
                 "description": "Resource ID of the private endpoint subnet."
               }
             },
+            "createPrivateDnsZones": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Create and link private DNS zones."
+              }
+            },
             "foundryName": {
               "type": "string",
               "metadata": {
@@ -574,52 +532,18 @@
               "metadata": {
                 "description": "Resource ID of the Microsoft Foundry account."
               }
-            },
-            "keyVaultName": {
-              "type": "string",
-              "metadata": {
-                "description": "Name of the Key Vault."
-              }
-            },
-            "keyVaultResourceId": {
-              "type": "string",
-              "metadata": {
-                "description": "Resource ID of the Key Vault."
-              }
-            },
-            "storageAccountName": {
-              "type": "string",
-              "metadata": {
-                "description": "Name of the storage account."
-              }
-            },
-            "storageAccountResourceId": {
-              "type": "string",
-              "metadata": {
-                "description": "Resource ID of the storage account."
-              }
             }
           },
           "resources": [
             {
+              "condition": "[parameters('createPrivateDnsZones')]",
               "type": "Microsoft.Network/privateDnsZones",
               "apiVersion": "2024-06-01",
               "name": "privatelink.cognitiveservices.azure.com",
               "location": "global"
             },
             {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2024-06-01",
-              "name": "privatelink.vaultcore.azure.net",
-              "location": "global"
-            },
-            {
-              "type": "Microsoft.Network/privateDnsZones",
-              "apiVersion": "2024-06-01",
-              "name": "[format('privatelink.blob.{0}', environment().suffixes.storage)]",
-              "location": "global"
-            },
-            {
+              "condition": "[parameters('createPrivateDnsZones')]",
               "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
               "apiVersion": "2024-06-01",
               "name": "[format('{0}/{1}', 'privatelink.cognitiveservices.azure.com', 'foundry-vnet-link')]",
@@ -632,36 +556,6 @@
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]"
-              ]
-            },
-            {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2024-06-01",
-              "name": "[format('{0}/{1}', 'privatelink.vaultcore.azure.net', 'key-vault-vnet-link')]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[parameters('virtualNetworkResourceId')]"
-                }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]"
-              ]
-            },
-            {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2024-06-01",
-              "name": "[format('{0}/{1}', format('privatelink.blob.{0}', environment().suffixes.storage), 'storage-vnet-link')]",
-              "location": "global",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[parameters('virtualNetworkResourceId')]"
-                }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]"
               ]
             },
             {
@@ -687,50 +581,7 @@
               }
             },
             {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2024-05-01",
-              "name": "[format('{0}-pe', parameters('keyVaultName'))]",
-              "location": "[parameters('location')]",
-              "properties": {
-                "subnet": {
-                  "id": "[parameters('privateEndpointSubnetResourceId')]"
-                },
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[format('{0}-connection', parameters('keyVaultName'))]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('keyVaultResourceId')]",
-                      "groupIds": [
-                        "vault"
-                      ]
-                    }
-                  }
-                ]
-              }
-            },
-            {
-              "type": "Microsoft.Network/privateEndpoints",
-              "apiVersion": "2024-05-01",
-              "name": "[format('{0}-pe', parameters('storageAccountName'))]",
-              "location": "[parameters('location')]",
-              "properties": {
-                "subnet": {
-                  "id": "[parameters('privateEndpointSubnetResourceId')]"
-                },
-                "privateLinkServiceConnections": [
-                  {
-                    "name": "[format('{0}-connection', parameters('storageAccountName'))]",
-                    "properties": {
-                      "privateLinkServiceId": "[parameters('storageAccountResourceId')]",
-                      "groupIds": [
-                        "blob"
-                      ]
-                    }
-                  }
-                ]
-              }
-            },
-            {
+              "condition": "[parameters('createPrivateDnsZones')]",
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2024-05-01",
               "name": "[format('{0}/{1}', format('{0}-pe', parameters('foundryName')), 'default')]",
@@ -748,52 +599,12 @@
                 "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]",
                 "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-pe', parameters('foundryName')))]"
               ]
-            },
-            {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2024-05-01",
-              "name": "[format('{0}/{1}', format('{0}-pe', parameters('keyVaultName')), 'default')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "vaultcore",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]",
-                "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-pe', parameters('keyVaultName')))]"
-              ]
-            },
-            {
-              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-              "apiVersion": "2024-05-01",
-              "name": "[format('{0}/{1}', format('{0}-pe', parameters('storageAccountName')), 'default')]",
-              "properties": {
-                "privateDnsZoneConfigs": [
-                  {
-                    "name": "blob",
-                    "properties": {
-                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]"
-                    }
-                  }
-                ]
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]",
-                "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-pe', parameters('storageAccountName')))]"
-              ]
             }
           ]
         }
       },
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments', 'provision-foundry')]",
-        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]",
         "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
       ]
     },
@@ -888,10 +699,6 @@
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Resources/deployments', 'provision-foundry'), '2025-04-01').outputs.modelDeploymentName.value]"
     },
-    "keyVaultName": {
-      "type": "string",
-      "value": "[variables('keyVaultName')]"
-    },
     "sharepointHostname": {
       "type": "string",
       "value": "[parameters('sharepointHostname')]"
@@ -900,17 +707,13 @@
       "type": "string",
       "value": "[parameters('sharepointSitePath')]"
     },
-    "storageAccountName": {
-      "type": "string",
-      "value": "[variables('storageName')]"
-    },
     "virtualNetworkResourceId": {
       "type": "string",
-      "value": "[if(parameters('enablePrivateNetworking'), resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName')), '')]"
+      "value": "[if(parameters('enablePrivateNetworking'), variables('virtualNetworkResourceId'), '')]"
     },
     "privateEndpointSubnetResourceId": {
       "type": "string",
-      "value": "[if(parameters('enablePrivateNetworking'), resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('privateEndpointSubnetName')), '')]"
+      "value": "[if(parameters('enablePrivateNetworking'), variables('privateEndpointSubnetResourceId'), '')]"
     }
   }
 }

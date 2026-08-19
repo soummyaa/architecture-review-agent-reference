@@ -2,10 +2,9 @@
 
 ## Goal
 
-Provision the shared Microsoft Foundry project, model deployment, Key Vault,
-and storage account. Validate that the workshop identity can reach the project,
-invoke the model, and resolve the workshop SharePoint site through Microsoft
-Graph.
+Provision the shared Microsoft Foundry project and model deployment. Validate
+that the workshop identity can reach the project, invoke the model, and resolve
+the workshop SharePoint site through Microsoft Graph.
 
 ## Prerequisites
 
@@ -19,21 +18,31 @@ The devcontainer installs Azure CLI, Bicep, Python, and the packages in
 
 ## Networking modes
 
-Private networking is enabled by default for regulated environments. In this
-mode the template creates a virtual network, a dedicated private endpoint
-subnet, private DNS zones, and private endpoints for Microsoft Foundry, Key
-Vault, and storage. Public network access to those services is disabled.
-Private mode requires network connectivity into the virtual network: either
-peering from a corporate network, a VPN, or Azure Bastion. The optional jump
-box is reached through one of those paths. The validator and all agent modules
-must be run from inside that network when private mode is enabled.
+Private networking is enabled by default for regulated environments. Public
+network access to Microsoft Foundry is disabled in both private networking
+modes. The validator and all agent modules must be run from a network that can
+reach the private endpoint.
 
-For quick local development, pass `enablePrivateNetworking=false`. This keeps
-the existing public service endpoints and does not create the private network.
+### Greenfield
 
-To deploy the optional Linux jump box in private mode, provide an SSH public
-key and set `deployJumpBox=true`. The VM has no public IP. Connect through Azure
-Bastion or an existing network path such as corporate peering or a VPN:
+By default, the template creates a virtual network, dedicated private endpoint
+and jump-box subnets, a private DNS zone and link, and a private endpoint for
+Microsoft Foundry. Deploy without the existing-network parameters:
+
+```bash
+az deployment group create \
+	--name architecture-review-setup \
+	--resource-group "$AZURE_RESOURCE_GROUP" \
+	--template-file 00-setup/main.bicep \
+	--parameters \
+		principalId="$CALLER_OBJECT_ID" \
+		sharepointHostname="<sharepoint-hostname>" \
+		sharepointSitePath="/sites/<workshop-site>"
+```
+
+The generated network must be reachable through corporate peering, a VPN, or
+Azure Bastion. To deploy the optional Linux jump box, provide an SSH public key
+and set `deployJumpBox=true`. The VM has no public IP:
 
 ```bash
 az deployment group create \
@@ -48,9 +57,44 @@ az deployment group create \
 		deployJumpBox=true
 ```
 
+### Landing zone
+
+To use established networking, supply both the existing virtual network and
+private endpoint subnet resource IDs. The template skips virtual network and
+subnet creation and places all private endpoints in the supplied subnet:
+
+```bash
+az deployment group create \
+	--name architecture-review-setup \
+	--resource-group "$AZURE_RESOURCE_GROUP" \
+	--template-file 00-setup/main.bicep \
+	--parameters \
+		principalId="$CALLER_OBJECT_ID" \
+		sharepointHostname="<sharepoint-hostname>" \
+		sharepointSitePath="/sites/<workshop-site>" \
+		existingVirtualNetworkResourceId="$VNET_RESOURCE_ID" \
+		existingPrivateEndpointSubnetResourceId="$PRIVATE_ENDPOINT_SUBNET_RESOURCE_ID" \
+		createPrivateDnsZones=false
+```
+
+Both resource ID parameters are required for landing-zone mode. The subnet
+must allow private endpoints, and the deployment identity must be allowed to
+create private endpoints in it. Set `createPrivateDnsZones=false` when central
+private DNS already provides the required zones and virtual network links:
+
+- `privatelink.cognitiveservices.azure.com`
+
+With DNS creation disabled, the template does not create private DNS zones,
+virtual network links, or private endpoint DNS zone groups. The landing-zone
+DNS service must create the corresponding records. The optional jump box is
+available only in greenfield mode because no existing jump-box subnet is
+accepted by this template.
+
+For quick local development, pass `enablePrivateNetworking=false`. This keeps
+the existing public service endpoints and does not create the private network.
+
 The deployment outputs the virtual network and private endpoint subnet
-resource IDs for later peering or jump-box integration. SSH uses the supplied
-key and no password.
+resource IDs, whether created or supplied, for later integration.
 
 ## Run Standalone
 
@@ -92,5 +136,6 @@ a summary. It exits with status `1` if any check fails.
 
 ## What you should understand by the end
 
-How managed identity, role assignments, deployment outputs, and Microsoft
-Graph permissions combine to provide the shared foundation for later modules.
+How managed identity, the Azure AI Developer role assignment, deployment
+outputs, and Microsoft Graph permissions combine to provide the shared
+foundation for later modules.
