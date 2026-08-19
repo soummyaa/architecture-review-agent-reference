@@ -11,10 +11,13 @@ from pathlib import Path
 from run import (
     DEFAULT_ADR_AUTHOR_AGENT_NAME,
     DEFAULT_DEPLOYMENT_NAME,
+    DEFAULT_RESEARCH_AGENT_NAME,
+    DEFAULT_RESEARCH_ALLOWLIST,
     DEFAULT_REVIEWER_AGENT_NAME,
     DEFAULT_STANDARDS_AGENT_NAME,
     DEFAULT_STANDARDS_DIRECTORY,
     ReviewWorkflowResult,
+    load_research_allowlist,
     load_standards,
     orchestrate_submission,
     resolve_foundry_config,
@@ -42,6 +45,20 @@ def parse_args() -> argparse.Namespace:
         "--adr-author-agent-name",
         default=os.getenv("FOUNDRY_ADR_AUTHOR_AGENT_NAME", DEFAULT_ADR_AUTHOR_AGENT_NAME),
     )
+    parser.add_argument(
+        "--research-agent-name",
+        default=os.getenv("FOUNDRY_RESEARCH_AGENT_NAME", DEFAULT_RESEARCH_AGENT_NAME),
+    )
+    parser.add_argument(
+        "--web-search-connection-id",
+        default=os.getenv("FOUNDRY_WEB_SEARCH_CONNECTION_ID"),
+    )
+    parser.add_argument(
+        "--research-allowlist",
+        type=Path,
+        default=DEFAULT_RESEARCH_ALLOWLIST,
+    )
+    parser.add_argument("--skip-research", action="store_true")
     parser.add_argument(
         "--reviewer-agent-name",
         default=os.getenv("FOUNDRY_REVIEWER_AGENT_NAME", DEFAULT_REVIEWER_AGENT_NAME),
@@ -86,6 +103,9 @@ def main() -> int:
 
     try:
         standards = load_standards(args.standards_directory)
+        allowed_domains = (
+            [] if args.skip_research else load_research_allowlist(args.research_allowlist)
+        )
         project_endpoint, model_deployment = resolve_foundry_config(args)
     except Exception as error:
         print(f"Evaluation setup failed: {error}", file=sys.stderr)
@@ -99,10 +119,14 @@ def main() -> int:
                 project_endpoint,
                 model_deployment,
                 args.standards_agent_name,
+                args.research_agent_name,
                 args.adr_author_agent_name,
                 args.reviewer_agent_name,
                 submission,
                 standards,
+                args.web_search_connection_id,
+                allowed_domains,
+                skip_research=args.skip_research,
             )
             checks = score_result(result)
             score = sum(checks.values())

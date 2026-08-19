@@ -80,39 +80,61 @@ def passing_review() -> AdrReview:
 
 
 class OrchestratorTests(unittest.TestCase):
+    @patch("run.AIProjectClient")
+    @patch("run.DefaultAzureCredential")
     @patch("run.run_reviewer_agent")
     @patch("run.run_adr_author_agent")
+    @patch("run.run_research_agent")
     @patch("run.run_standards_agent")
-    def test_reviewer_receives_exact_report_and_draft(
+    def test_four_agent_chain_preserves_typed_handoffs(
         self,
         standards_agent: MagicMock,
+        research_agent: MagicMock,
         author_agent: MagicMock,
         reviewer_agent: MagicMock,
+        credential_factory: MagicMock,
+        project_client_factory: MagicMock,
     ) -> None:
         report = example_report()
+        research = MagicMock()
         draft = example_adr()
         review = passing_review()
         standards_agent.return_value = report
+        research_agent.return_value = research
         author_agent.return_value = draft
         reviewer_agent.return_value = review
+
+        credential = MagicMock()
+        credential_factory.return_value.__enter__.return_value = credential
+        project_client = MagicMock()
+        project_client_factory.return_value.__enter__.return_value = project_client
+        openai_client = MagicMock()
+        project_client.get_openai_client.return_value.__enter__.return_value = openai_client
 
         result = orchestrate_submission(
             "https://example.services.ai.azure.com/api/projects/example",
             "example-model",
             "standards-agent",
+            "research-agent",
             "author-agent",
             "reviewer-agent",
             Path("submission.md"),
             [],
+            "connection-id",
+            ["example.com"],
             keep_agent=True,
         )
 
         self.assertIs(result.standards_report, report)
         self.assertIs(result.draft_adr, draft)
         self.assertIs(result.review, review)
-        self.assertIs(reviewer_agent.call_args.args[3], report)
-        self.assertIs(reviewer_agent.call_args.args[4], draft)
+        self.assertIs(research_agent.call_args.args[4], report)
+        self.assertIs(author_agent.call_args.args[4], report)
+        self.assertIs(author_agent.call_args.args[5], research)
+        self.assertIs(reviewer_agent.call_args.args[4], report)
+        self.assertIs(reviewer_agent.call_args.args[5], draft)
         self.assertTrue(standards_agent.call_args.args[-1])
+        self.assertTrue(research_agent.call_args.args[-1])
         self.assertTrue(author_agent.call_args.args[-1])
         self.assertTrue(reviewer_agent.call_args.args[-1])
 
@@ -123,8 +145,8 @@ class ReviewValidationTests(unittest.TestCase):
         reviewer_instructions = build_reviewer_instructions()
         standards_instructions = build_standards_instructions([])
 
-        self.assertIn("keeping the proposal's current hosting", author_instructions)
-        self.assertIn("replacing an unapproved hosting model", author_instructions)
+        self.assertIn("the submitted design stands", author_instructions)
+        self.assertIn("the design itself must change", author_instructions)
         self.assertIn(
             "no unsupported claims and no omitted findings means verdict pass",
             reviewer_instructions,
@@ -173,19 +195,9 @@ class ReviewValidationTests(unittest.TestCase):
 
 
 class FoundryClientTests(unittest.TestCase):
-    @patch("run.AIProjectClient")
-    @patch("run.DefaultAzureCredential")
-    def test_reviewer_uses_foundry_scope(
-        self,
-        credential_factory: MagicMock,
-        project_client_factory: MagicMock,
-    ) -> None:
-        credential = MagicMock()
-        credential_factory.return_value.__enter__.return_value = credential
+    def test_reviewer_uses_shared_foundry_clients(self) -> None:
         project_client = MagicMock()
-        project_client_factory.return_value.__enter__.return_value = project_client
         openai_client = MagicMock()
-        project_client.get_openai_client.return_value.__enter__.return_value = openai_client
 
         agent = project_client.agents.create_version.return_value
         agent.name = "reviewer-agent"
@@ -194,7 +206,8 @@ class FoundryClientTests(unittest.TestCase):
         openai_client.responses.create.return_value.output_text = passing_review().model_dump_json()
 
         result = run_reviewer_agent(
-            "https://example.services.ai.azure.com/api/projects/example",
+            project_client,
+            openai_client,
             "example-model",
             "reviewer-agent",
             example_report(),
@@ -202,11 +215,6 @@ class FoundryClientTests(unittest.TestCase):
         )
 
         self.assertEqual(result.verdict, "pass")
-        project_client_factory.assert_called_once_with(
-            endpoint="https://example.services.ai.azure.com/api/projects/example",
-            credential=credential,
-            credential_scopes=[AI_FOUNDRY_SCOPE],
-        )
         project_client.agents.delete_version.assert_called_once()
         openai_client.conversations.delete.assert_called_once()
 
@@ -214,7 +222,8 @@ class FoundryClientTests(unittest.TestCase):
         openai_client.conversations.delete.reset_mock()
 
         run_reviewer_agent(
-            "https://example.services.ai.azure.com/api/projects/example",
+            project_client,
+            openai_client,
             "example-model",
             "reviewer-agent",
             example_report(),

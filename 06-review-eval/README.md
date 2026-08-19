@@ -2,7 +2,7 @@
 
 ## Goal
 Build a reviewer agent that checks the draft ADR against the source findings
-before a human sees it. The reviewer is the third agent in the live build and
+before a human sees it. The reviewer is the fourth agent in the live build and
 completes the submission-in, reviewed-ADR-out loop.
 
 The evaluation harness that scores output across the synthetic cases remains
@@ -10,15 +10,17 @@ reference code for participants to read and pull; it is not built live.
 
 ## Prerequisites
 - Completed [Module 00](../00-setup/README.md), including a successful validator run
+- A Foundry web-search connection configured as described in [Module 03](../03-orchestration/README.md)
 - Python dependencies installed from this module's `requirements.txt`
 
 ## Run
-From the repository root, run the complete three-agent chain and capture its
+From the repository root, run the complete four-agent chain and capture its
 structured output:
 
 ```bash
 python -m pip install -r 06-review-eval/requirements.txt
 export AZURE_RESOURCE_GROUP=<your-resource-group>
+export FOUNDRY_WEB_SEARCH_CONNECTION_ID=<project-connection-id>
 python 06-review-eval/run.py \
   data/synthetic/submissions/SUB-001-northwind-analytics-cloud.md \
   > reviewed-adr.json
@@ -32,7 +34,7 @@ python 05-adr-generation/run.py reviewed-adr.json
 ```
 
 For a portal walkthrough, add `--keep-agent` before the submission path. The
-standards, ADR author, and reviewer agents are then retained with their
+standards, research, ADR author, and reviewer agents are then retained with their
 conversations and runs for inspection in the Microsoft Foundry portal. Their
 names and versions are printed to standard error, so redirected JSON remains
 valid:
@@ -45,13 +47,18 @@ python 06-review-eval/run.py --keep-agent \
 
 Without the flag, the existing cleanup behavior remains in place.
 
-## The three-agent chain
+Use `--skip-research` when the web-search connection is not configured. The ADR
+author then receives no research object and determines the decision from the
+standards findings alone.
+
+## The four-agent chain
 
 The orchestrator is deliberately linear:
 
 1. The standards agent produces a typed `ConformanceReport`.
-2. The ADR author consumes that report and produces a draft.
-3. The reviewer receives both objects, flags unsupported claims and omitted
+2. The research agent adds allowlisted external context.
+3. The ADR author consumes both typed inputs and produces a draft.
+4. The reviewer receives the report and draft, flags unsupported claims and omitted
    findings, and returns corrected ADR content for document rendering.
 
 ## Evaluation harness
@@ -62,8 +69,8 @@ Run the live decision regression after changing agent instructions:
 python 06-review-eval/decision_regression.py
 ```
 
-The command runs all three synthetic submissions through the standards agent,
-ADR author, and reviewer. It verifies these final reviewed decisions:
+The command runs all three synthetic submissions through the standards,
+research, ADR author, and reviewer agents. It verifies these final reviewed decisions:
 
 | Submission | Expected decision | Expected conditions |
 |---|---|---|

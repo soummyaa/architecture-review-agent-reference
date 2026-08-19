@@ -18,8 +18,12 @@ class DecisionRegressionTests(unittest.TestCase):
             resource_group=None,
             deployment_name="architecture-review-setup",
             standards_agent_name="standards-agent",
+            research_agent_name="research-agent",
             adr_author_agent_name="author-agent",
             reviewer_agent_name="reviewer-agent",
+            web_search_connection_id="connection-id",
+            research_allowlist=Path("research-allowlist.json"),
+            skip_research=False,
             submissions_directory=Path("submissions"),
             standards_directory=Path("standards"),
         )
@@ -49,12 +53,14 @@ class DecisionRegressionTests(unittest.TestCase):
     @patch("decision_regression.Path.is_file", return_value=True)
     @patch("decision_regression.orchestrate_submission")
     @patch("decision_regression.resolve_foundry_config")
+    @patch("decision_regression.load_research_allowlist", return_value=["example.com"])
     @patch("decision_regression.load_standards", return_value=[])
     @patch("decision_regression.parse_args")
     def test_expected_decisions_exit_zero(
         self,
         parse_args: MagicMock,
         _load_standards: MagicMock,
+        _load_research_allowlist: MagicMock,
         resolve_foundry_config: MagicMock,
         orchestrate_submission: MagicMock,
         _is_file: MagicMock,
@@ -80,12 +86,14 @@ class DecisionRegressionTests(unittest.TestCase):
     @patch("decision_regression.Path.is_file", return_value=True)
     @patch("decision_regression.orchestrate_submission")
     @patch("decision_regression.resolve_foundry_config")
+    @patch("decision_regression.load_research_allowlist", return_value=["example.com"])
     @patch("decision_regression.load_standards", return_value=[])
     @patch("decision_regression.parse_args")
     def test_mismatch_exits_nonzero_and_prints_expected_and_actual(
         self,
         parse_args: MagicMock,
         _load_standards: MagicMock,
+        _load_research_allowlist: MagicMock,
         resolve_foundry_config: MagicMock,
         orchestrate_submission: MagicMock,
         _is_file: MagicMock,
