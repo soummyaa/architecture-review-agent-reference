@@ -11,6 +11,9 @@ from run import (
     ConformanceFinding,
     ConformanceReport,
     ReviewIssue,
+    build_adr_author_instructions,
+    build_reviewer_instructions,
+    build_standards_instructions,
     orchestrate_submission,
     run_reviewer_agent,
     validate_review,
@@ -115,6 +118,22 @@ class OrchestratorTests(unittest.TestCase):
 
 
 class ReviewValidationTests(unittest.TestCase):
+    def test_agent_instructions_state_validation_policies(self) -> None:
+        author_instructions = build_adr_author_instructions()
+        reviewer_instructions = build_reviewer_instructions()
+        standards_instructions = build_standards_instructions([])
+
+        self.assertIn("keeping the proposal's current hosting", author_instructions)
+        self.assertIn("replacing an unapproved hosting model", author_instructions)
+        self.assertIn(
+            "no unsupported claims and no omitted findings means verdict pass",
+            reviewer_instructions,
+        )
+        self.assertIn("Section 3 applies only to vendor-hosted SaaS", standards_instructions)
+        self.assertIn("no finding may cite it for those proposals", standards_instructions)
+        self.assertIn("three availability zones", standards_instructions)
+        self.assertIn("schemas registered in a schema registry", standards_instructions)
+
     def test_rejects_omission_with_unknown_finding_index(self) -> None:
         review = passing_review().model_copy(
             update={

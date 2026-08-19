@@ -56,8 +56,28 @@ The orchestrator is deliberately linear:
 
 ## Evaluation harness
 
-The separate harness runs the full chain for the three existing synthetic
-submissions:
+Run the live decision regression after changing agent instructions:
+
+```bash
+python 06-review-eval/decision_regression.py
+```
+
+The command runs all three synthetic submissions through the standards agent,
+ADR author, and reviewer. It verifies these final reviewed decisions:
+
+| Submission | Expected decision | Expected conditions |
+|---|---|---|
+| `SUB-003` | `approved` | None |
+| `SUB-001` | `approved_with_conditions` | At least one |
+| `SUB-002` | `rejected` | None |
+
+Each submission prints the expected and actual decision and condition count.
+The command exits non-zero if any workflow fails or any result differs, making
+it suitable for checking participant-authored instructions and for automated
+regression runs.
+
+The separate quality-scoring harness also runs the full chain for the three
+synthetic submissions:
 
 ```bash
 python 06-review-eval/evaluate.py
