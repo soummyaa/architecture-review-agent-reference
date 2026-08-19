@@ -105,51 +105,21 @@ resource jumpBoxSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' ex
   name: jumpBoxSubnetName
 }
 
-resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
+module foundryProvisioning 'provision-foundry.bicep' = {
+  name: 'provision-foundry'
+  params: {
+    location: location
+    foundryName: foundryName
+    projectName: projectName
+    modelName: modelName
+    modelVersion: modelVersion
+    modelDeploymentName: modelDeploymentName
+    modelCapacity: modelCapacity
+  }
+}
+
+resource foundry 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = {
   name: foundryName
-  location: location
-  kind: 'AIServices'
-  identity: {
-    type: 'SystemAssigned'
-  }
-  sku: {
-    name: 'S0'
-  }
-  properties: {
-    allowProjectManagement: true
-    customSubDomainName: foundryName
-    publicNetworkAccess: 'Enabled'
-  }
-}
-
-resource project 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
-  parent: foundry
-  name: projectName
-  location: location
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    displayName: 'Architecture Review Workshop'
-    description: 'Microsoft Foundry project for the architecture review workshop.'
-  }
-}
-
-resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
-  parent: foundry
-  name: modelDeploymentName
-  sku: {
-    name: 'GlobalStandard'
-    capacity: modelCapacity
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: modelName
-      version: modelVersion
-    }
-    versionUpgradeOption: 'NoAutoUpgrade'
-  }
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
@@ -185,174 +155,35 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   }
 }
 
-resource foundryPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = if (enablePrivateNetworking) {
-  name: 'privatelink.cognitiveservices.azure.com'
-  location: 'global'
-}
-
-resource keyVaultPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = if (enablePrivateNetworking) {
-  name: 'privatelink.vaultcore.azure.net'
-  location: 'global'
-}
-
-resource storagePrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = if (enablePrivateNetworking) {
-  name: 'privatelink.blob.${environment().suffixes.storage}'
-  location: 'global'
-}
-
-resource foundryPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (enablePrivateNetworking) {
-  parent: foundryPrivateDnsZone
-  name: '${virtualNetworkName}-link'
-  location: 'global'
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: virtualNetwork.id
-    }
+module privateNetworking 'private-networking.bicep' = if (enablePrivateNetworking) {
+  name: 'private-networking'
+  params: {
+    location: location
+    virtualNetworkResourceId: virtualNetwork.id
+    privateEndpointSubnetResourceId: privateEndpointSubnet.id
+    foundryName: foundryProvisioning.outputs.foundryName
+    foundryResourceId: foundryProvisioning.outputs.foundryResourceId
+    keyVaultName: keyVault.name
+    keyVaultResourceId: keyVault.id
+    storageAccountName: storageAccount.name
+    storageAccountResourceId: storageAccount.id
   }
-}
-
-resource keyVaultPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (enablePrivateNetworking) {
-  parent: keyVaultPrivateDnsZone
-  name: '${virtualNetworkName}-link'
-  location: 'global'
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: virtualNetwork.id
-    }
-  }
-}
-
-resource storagePrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (enablePrivateNetworking) {
-  parent: storagePrivateDnsZone
-  name: '${virtualNetworkName}-link'
-  location: 'global'
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: virtualNetwork.id
-    }
-  }
-}
-
-resource foundryPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = if (enablePrivateNetworking) {
-  name: '${foundryName}-pe'
-  location: location
-  properties: {
-    subnet: {
-      id: privateEndpointSubnet.id
-    }
-    privateLinkServiceConnections: [
-      {
-        name: '${foundryName}-connection'
-        properties: {
-          privateLinkServiceId: foundry.id
-          groupIds: [
-            'account'
-          ]
-        }
-      }
-    ]
-  }
-}
-
-resource keyVaultPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = if (enablePrivateNetworking) {
-  name: '${keyVaultName}-pe'
-  location: location
-  properties: {
-    subnet: {
-      id: privateEndpointSubnet.id
-    }
-    privateLinkServiceConnections: [
-      {
-        name: '${keyVaultName}-connection'
-        properties: {
-          privateLinkServiceId: keyVault.id
-          groupIds: [
-            'vault'
-          ]
-        }
-      }
-    ]
-  }
-}
-
-resource storagePrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' = if (enablePrivateNetworking) {
-  name: '${storageName}-pe'
-  location: location
-  properties: {
-    subnet: {
-      id: privateEndpointSubnet.id
-    }
-    privateLinkServiceConnections: [
-      {
-        name: '${storageName}-connection'
-        properties: {
-          privateLinkServiceId: storageAccount.id
-          groupIds: [
-            'blob'
-          ]
-        }
-      }
-    ]
-  }
-}
-
-resource foundryPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (enablePrivateNetworking) {
-  parent: foundryPrivateEndpoint
-  name: 'default'
-  properties: {
-    privateDnsZoneConfigs: [
-      {
-        name: 'cognitiveservices'
-        properties: {
-          privateDnsZoneId: foundryPrivateDnsZone.id
-        }
-      }
-    ]
-  }
+  // The account API can return Accepted before provisioning is complete, so the module boundary is intentional.
+  dependsOn: [
+    #disable-next-line no-unnecessary-dependson
+    foundryProvisioning
+  ]
 }
 
 module disableFoundryPublicAccess 'disable-foundry-public-access.bicep' = if (enablePrivateNetworking) {
   name: 'disable-foundry-public-access'
   params: {
-    foundryName: foundry.name
+    foundryName: foundryProvisioning.outputs.foundryName
     location: location
   }
   dependsOn: [
-    foundryPrivateDnsZoneGroup
+    privateNetworking
   ]
-}
-
-resource keyVaultPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (enablePrivateNetworking) {
-  parent: keyVaultPrivateEndpoint
-  name: 'default'
-  properties: {
-    privateDnsZoneConfigs: [
-      {
-        name: 'vaultcore'
-        properties: {
-          privateDnsZoneId: keyVaultPrivateDnsZone.id
-        }
-      }
-    ]
-  }
-}
-
-resource storagePrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (enablePrivateNetworking) {
-  parent: storagePrivateEndpoint
-  name: 'default'
-  properties: {
-    privateDnsZoneConfigs: [
-      {
-        name: 'blob'
-        properties: {
-          privateDnsZoneId: storagePrivateDnsZone.id
-        }
-      }
-    ]
-  }
 }
 
 resource jumpBoxNsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = if (enablePrivateNetworking && deployJumpBox) {
@@ -454,6 +285,9 @@ resource foundryRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-
     principalId: principalId
     roleDefinitionId: azureAiDeveloperRoleId
   }
+  dependsOn: [
+    foundryProvisioning
+  ]
 }
 
 resource keyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -474,11 +308,11 @@ resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-
   }
 }
 
-output foundryProjectEndpoint string = 'https://${foundry.name}.services.ai.azure.com/api/projects/${project.name}'
+output foundryProjectEndpoint string = 'https://${foundryProvisioning.outputs.foundryName}.services.ai.azure.com/api/projects/${foundryProvisioning.outputs.projectName}'
 output foundryResourceId string = foundry.id
 output foundryResourceName string = foundry.name
 output modelEndpoint string = 'https://${foundry.name}.openai.azure.com/'
-output modelDeploymentName string = modelDeployment.name
+output modelDeploymentName string = foundryProvisioning.outputs.modelDeploymentName
 output keyVaultName string = keyVault.name
 output sharepointHostname string = sharepointHostname
 output sharepointSitePath string = sharepointSitePath

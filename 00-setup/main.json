@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "18122662344990708844"
+      "templateHash": "15345591615400931208"
     }
   },
   "parameters": {
@@ -154,60 +154,6 @@
       }
     },
     {
-      "type": "Microsoft.CognitiveServices/accounts",
-      "apiVersion": "2025-06-01",
-      "name": "[variables('foundryName')]",
-      "location": "[parameters('location')]",
-      "kind": "AIServices",
-      "identity": {
-        "type": "SystemAssigned"
-      },
-      "sku": {
-        "name": "S0"
-      },
-      "properties": {
-        "allowProjectManagement": true,
-        "customSubDomainName": "[variables('foundryName')]",
-        "publicNetworkAccess": "Enabled"
-      }
-    },
-    {
-      "type": "Microsoft.CognitiveServices/accounts/projects",
-      "apiVersion": "2025-06-01",
-      "name": "[format('{0}/{1}', variables('foundryName'), parameters('projectName'))]",
-      "location": "[parameters('location')]",
-      "identity": {
-        "type": "SystemAssigned"
-      },
-      "properties": {
-        "displayName": "Architecture Review Workshop",
-        "description": "Microsoft Foundry project for the architecture review workshop."
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryName'))]"
-      ]
-    },
-    {
-      "type": "Microsoft.CognitiveServices/accounts/deployments",
-      "apiVersion": "2025-06-01",
-      "name": "[format('{0}/{1}', variables('foundryName'), parameters('modelDeploymentName'))]",
-      "sku": {
-        "name": "GlobalStandard",
-        "capacity": "[parameters('modelCapacity')]"
-      },
-      "properties": {
-        "model": {
-          "format": "OpenAI",
-          "name": "[parameters('modelName')]",
-          "version": "[parameters('modelVersion')]"
-        },
-        "versionUpgradeOption": "NoAutoUpgrade"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryName'))]"
-      ]
-    },
-    {
       "type": "Microsoft.KeyVault/vaults",
       "apiVersion": "2023-07-01",
       "name": "[variables('keyVaultName')]",
@@ -241,219 +187,6 @@
         "publicNetworkAccess": "[if(parameters('enablePrivateNetworking'), 'Disabled', 'Enabled')]",
         "supportsHttpsTrafficOnly": true
       }
-    },
-    {
-      "condition": "[parameters('enablePrivateNetworking')]",
-      "type": "Microsoft.Network/privateDnsZones",
-      "apiVersion": "2024-06-01",
-      "name": "privatelink.cognitiveservices.azure.com",
-      "location": "global"
-    },
-    {
-      "condition": "[parameters('enablePrivateNetworking')]",
-      "type": "Microsoft.Network/privateDnsZones",
-      "apiVersion": "2024-06-01",
-      "name": "privatelink.vaultcore.azure.net",
-      "location": "global"
-    },
-    {
-      "condition": "[parameters('enablePrivateNetworking')]",
-      "type": "Microsoft.Network/privateDnsZones",
-      "apiVersion": "2024-06-01",
-      "name": "[format('privatelink.blob.{0}', environment().suffixes.storage)]",
-      "location": "global"
-    },
-    {
-      "condition": "[parameters('enablePrivateNetworking')]",
-      "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-      "apiVersion": "2024-06-01",
-      "name": "[format('{0}/{1}', 'privatelink.cognitiveservices.azure.com', format('{0}-link', variables('virtualNetworkName')))]",
-      "location": "global",
-      "properties": {
-        "registrationEnabled": false,
-        "virtualNetwork": {
-          "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-        }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]",
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-      ]
-    },
-    {
-      "condition": "[parameters('enablePrivateNetworking')]",
-      "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-      "apiVersion": "2024-06-01",
-      "name": "[format('{0}/{1}', 'privatelink.vaultcore.azure.net', format('{0}-link', variables('virtualNetworkName')))]",
-      "location": "global",
-      "properties": {
-        "registrationEnabled": false,
-        "virtualNetwork": {
-          "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-        }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]",
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-      ]
-    },
-    {
-      "condition": "[parameters('enablePrivateNetworking')]",
-      "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-      "apiVersion": "2024-06-01",
-      "name": "[format('{0}/{1}', format('privatelink.blob.{0}', environment().suffixes.storage), format('{0}-link', variables('virtualNetworkName')))]",
-      "location": "global",
-      "properties": {
-        "registrationEnabled": false,
-        "virtualNetwork": {
-          "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-        }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-      ]
-    },
-    {
-      "condition": "[parameters('enablePrivateNetworking')]",
-      "type": "Microsoft.Network/privateEndpoints",
-      "apiVersion": "2024-05-01",
-      "name": "[format('{0}-pe', variables('foundryName'))]",
-      "location": "[parameters('location')]",
-      "properties": {
-        "subnet": {
-          "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('privateEndpointSubnetName'))]"
-        },
-        "privateLinkServiceConnections": [
-          {
-            "name": "[format('{0}-connection', variables('foundryName'))]",
-            "properties": {
-              "privateLinkServiceId": "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryName'))]",
-              "groupIds": [
-                "account"
-              ]
-            }
-          }
-        ]
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryName'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-      ]
-    },
-    {
-      "condition": "[parameters('enablePrivateNetworking')]",
-      "type": "Microsoft.Network/privateEndpoints",
-      "apiVersion": "2024-05-01",
-      "name": "[format('{0}-pe', variables('keyVaultName'))]",
-      "location": "[parameters('location')]",
-      "properties": {
-        "subnet": {
-          "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('privateEndpointSubnetName'))]"
-        },
-        "privateLinkServiceConnections": [
-          {
-            "name": "[format('{0}-connection', variables('keyVaultName'))]",
-            "properties": {
-              "privateLinkServiceId": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
-              "groupIds": [
-                "vault"
-              ]
-            }
-          }
-        ]
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-      ]
-    },
-    {
-      "condition": "[parameters('enablePrivateNetworking')]",
-      "type": "Microsoft.Network/privateEndpoints",
-      "apiVersion": "2024-05-01",
-      "name": "[format('{0}-pe', variables('storageName'))]",
-      "location": "[parameters('location')]",
-      "properties": {
-        "subnet": {
-          "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('privateEndpointSubnetName'))]"
-        },
-        "privateLinkServiceConnections": [
-          {
-            "name": "[format('{0}-connection', variables('storageName'))]",
-            "properties": {
-              "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]",
-              "groupIds": [
-                "blob"
-              ]
-            }
-          }
-        ]
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
-      ]
-    },
-    {
-      "condition": "[parameters('enablePrivateNetworking')]",
-      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-      "apiVersion": "2024-05-01",
-      "name": "[format('{0}/{1}', format('{0}-pe', variables('foundryName')), 'default')]",
-      "properties": {
-        "privateDnsZoneConfigs": [
-          {
-            "name": "cognitiveservices",
-            "properties": {
-              "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]"
-            }
-          }
-        ]
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]",
-        "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-pe', variables('foundryName')))]"
-      ]
-    },
-    {
-      "condition": "[parameters('enablePrivateNetworking')]",
-      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-      "apiVersion": "2024-05-01",
-      "name": "[format('{0}/{1}', format('{0}-pe', variables('keyVaultName')), 'default')]",
-      "properties": {
-        "privateDnsZoneConfigs": [
-          {
-            "name": "vaultcore",
-            "properties": {
-              "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]"
-            }
-          }
-        ]
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]",
-        "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-pe', variables('keyVaultName')))]"
-      ]
-    },
-    {
-      "condition": "[parameters('enablePrivateNetworking')]",
-      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
-      "apiVersion": "2024-05-01",
-      "name": "[format('{0}/{1}', format('{0}-pe', variables('storageName')), 'default')]",
-      "properties": {
-        "privateDnsZoneConfigs": [
-          {
-            "name": "blob",
-            "properties": {
-              "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]"
-            }
-          }
-        ]
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]",
-        "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-pe', variables('storageName')))]"
-      ]
     },
     {
       "condition": "[and(parameters('enablePrivateNetworking'), parameters('deployJumpBox'))]",
@@ -570,7 +303,7 @@
         "roleDefinitionId": "[variables('azureAiDeveloperRoleId')]"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryName'))]"
+        "[resourceId('Microsoft.Resources/deployments', 'provision-foundry')]"
       ]
     },
     {
@@ -600,6 +333,471 @@
       ]
     },
     {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "provision-foundry",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "foundryName": {
+            "value": "[variables('foundryName')]"
+          },
+          "projectName": {
+            "value": "[parameters('projectName')]"
+          },
+          "modelName": {
+            "value": "[parameters('modelName')]"
+          },
+          "modelVersion": {
+            "value": "[parameters('modelVersion')]"
+          },
+          "modelDeploymentName": {
+            "value": "[parameters('modelDeploymentName')]"
+          },
+          "modelCapacity": {
+            "value": "[parameters('modelCapacity')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "7783647960325462428"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for the Microsoft Foundry resources."
+              }
+            },
+            "foundryName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Microsoft Foundry account."
+              }
+            },
+            "projectName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Microsoft Foundry project."
+              }
+            },
+            "modelName": {
+              "type": "string",
+              "metadata": {
+                "description": "Model name from the Microsoft Foundry model catalog."
+              }
+            },
+            "modelVersion": {
+              "type": "string",
+              "metadata": {
+                "description": "Model version available in the selected region."
+              }
+            },
+            "modelDeploymentName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name used by applications when calling the deployed model."
+              }
+            },
+            "modelCapacity": {
+              "type": "int",
+              "metadata": {
+                "description": "Deployment capacity in thousands of tokens per minute."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts",
+              "apiVersion": "2025-06-01",
+              "name": "[parameters('foundryName')]",
+              "location": "[parameters('location')]",
+              "kind": "AIServices",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "sku": {
+                "name": "S0"
+              },
+              "properties": {
+                "allowProjectManagement": true,
+                "customSubDomainName": "[parameters('foundryName')]",
+                "publicNetworkAccess": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/projects",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}', parameters('foundryName'), parameters('projectName'))]",
+              "location": "[parameters('location')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "displayName": "Architecture Review Workshop",
+                "description": "Microsoft Foundry project for the architecture review workshop."
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('foundryName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}', parameters('foundryName'), parameters('modelDeploymentName'))]",
+              "sku": {
+                "name": "GlobalStandard",
+                "capacity": "[parameters('modelCapacity')]"
+              },
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "[parameters('modelName')]",
+                  "version": "[parameters('modelVersion')]"
+                },
+                "versionUpgradeOption": "NoAutoUpgrade"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('foundryName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "foundryName": {
+              "type": "string",
+              "value": "[parameters('foundryName')]"
+            },
+            "foundryResourceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('foundryName'))]"
+            },
+            "projectName": {
+              "type": "string",
+              "value": "[parameters('projectName')]"
+            },
+            "modelDeploymentName": {
+              "type": "string",
+              "value": "[parameters('modelDeploymentName')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "condition": "[parameters('enablePrivateNetworking')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "private-networking",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "virtualNetworkResourceId": {
+            "value": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+          },
+          "privateEndpointSubnetResourceId": {
+            "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('privateEndpointSubnetName'))]"
+          },
+          "foundryName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'provision-foundry'), '2025-04-01').outputs.foundryName.value]"
+          },
+          "foundryResourceId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'provision-foundry'), '2025-04-01').outputs.foundryResourceId.value]"
+          },
+          "keyVaultName": {
+            "value": "[variables('keyVaultName')]"
+          },
+          "keyVaultResourceId": {
+            "value": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+          },
+          "storageAccountName": {
+            "value": "[variables('storageName')]"
+          },
+          "storageAccountResourceId": {
+            "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "6336124955136232750"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for the private endpoints."
+              }
+            },
+            "virtualNetworkResourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the virtual network."
+              }
+            },
+            "privateEndpointSubnetResourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the private endpoint subnet."
+              }
+            },
+            "foundryName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Microsoft Foundry account."
+              }
+            },
+            "foundryResourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the Microsoft Foundry account."
+              }
+            },
+            "keyVaultName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Key Vault."
+              }
+            },
+            "keyVaultResourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the Key Vault."
+              }
+            },
+            "storageAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the storage account."
+              }
+            },
+            "storageAccountResourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the storage account."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2024-06-01",
+              "name": "privatelink.cognitiveservices.azure.com",
+              "location": "global"
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2024-06-01",
+              "name": "privatelink.vaultcore.azure.net",
+              "location": "global"
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2024-06-01",
+              "name": "[format('privatelink.blob.{0}', environment().suffixes.storage)]",
+              "location": "global"
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.cognitiveservices.azure.com', 'foundry-vnet-link')]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[parameters('virtualNetworkResourceId')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.vaultcore.azure.net', 'key-vault-vnet-link')]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[parameters('virtualNetworkResourceId')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2024-06-01",
+              "name": "[format('{0}/{1}', format('privatelink.blob.{0}', environment().suffixes.storage), 'storage-vnet-link')]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[parameters('virtualNetworkResourceId')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}-pe', parameters('foundryName'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('privateEndpointSubnetResourceId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[format('{0}-connection', parameters('foundryName'))]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('foundryResourceId')]",
+                      "groupIds": [
+                        "account"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}-pe', parameters('keyVaultName'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('privateEndpointSubnetResourceId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[format('{0}-connection', parameters('keyVaultName'))]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('keyVaultResourceId')]",
+                      "groupIds": [
+                        "vault"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}-pe', parameters('storageAccountName'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('privateEndpointSubnetResourceId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[format('{0}-connection', parameters('storageAccountName'))]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('storageAccountResourceId')]",
+                      "groupIds": [
+                        "blob"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}/{1}', format('{0}-pe', parameters('foundryName')), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "cognitiveservices",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.cognitiveservices.azure.com')]",
+                "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-pe', parameters('foundryName')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}/{1}', format('{0}-pe', parameters('keyVaultName')), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "vaultcore",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]",
+                "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-pe', parameters('keyVaultName')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2024-05-01",
+              "name": "[format('{0}/{1}', format('{0}-pe', parameters('storageAccountName')), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "blob",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]",
+                "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-pe', parameters('storageAccountName')))]"
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'provision-foundry')]",
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]"
+      ]
+    },
+    {
       "condition": "[parameters('enablePrivateNetworking')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
@@ -611,7 +809,7 @@
         "mode": "Incremental",
         "parameters": {
           "foundryName": {
-            "value": "[variables('foundryName')]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'provision-foundry'), '2025-04-01').outputs.foundryName.value]"
           },
           "location": {
             "value": "[parameters('location')]"
@@ -664,15 +862,15 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryName'))]",
-        "[resourceId('Microsoft.Network/privateEndpoints/privateDnsZoneGroups', format('{0}-pe', variables('foundryName')), 'default')]"
+        "[resourceId('Microsoft.Resources/deployments', 'provision-foundry')]",
+        "[resourceId('Microsoft.Resources/deployments', 'private-networking')]"
       ]
     }
   ],
   "outputs": {
     "foundryProjectEndpoint": {
       "type": "string",
-      "value": "[format('https://{0}.services.ai.azure.com/api/projects/{1}', variables('foundryName'), parameters('projectName'))]"
+      "value": "[format('https://{0}.services.ai.azure.com/api/projects/{1}', reference(resourceId('Microsoft.Resources/deployments', 'provision-foundry'), '2025-04-01').outputs.foundryName.value, reference(resourceId('Microsoft.Resources/deployments', 'provision-foundry'), '2025-04-01').outputs.projectName.value)]"
     },
     "foundryResourceId": {
       "type": "string",
@@ -688,7 +886,7 @@
     },
     "modelDeploymentName": {
       "type": "string",
-      "value": "[parameters('modelDeploymentName')]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'provision-foundry'), '2025-04-01').outputs.modelDeploymentName.value]"
     },
     "keyVaultName": {
       "type": "string",

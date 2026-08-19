@@ -20,6 +20,15 @@ AI_FOUNDRY_SCOPE = "https://ai.azure.com/.default"
 GRAPH_SCOPE = "https://graph.microsoft.com/.default"
 REQUEST_TIMEOUT_SECONDS = 30
 DEFAULT_DEPLOYMENT_NAME = "architecture-review-setup"
+PRIVATE_NETWORK_HINT = (
+    "this environment uses private networking. Run this validator from inside "
+    "the virtual network via peering, VPN, or a jump box."
+)
+PRIVATE_NETWORK_ERROR_PHRASES = (
+    "public access is disabled",
+    "public network access is disabled",
+    "virtual network/firewall rules",
+)
 
 
 @dataclass(frozen=True)
@@ -165,7 +174,12 @@ def response_error(response: requests.Response, forbidden_hint: str) -> str:
     detail = message[:240] if message else response.reason
     result = f"HTTP {response.status_code}: {detail} (request ID: {request_id})"
     if response.status_code == 403:
-        result = f"{result}. Remediation: {forbidden_hint}"
+        remediation = forbidden_hint
+        if any(
+            phrase in message.casefold() for phrase in PRIVATE_NETWORK_ERROR_PHRASES
+        ):
+            remediation = PRIVATE_NETWORK_HINT
+        result = f"{result}. Remediation: {remediation}"
     return result
 
 
