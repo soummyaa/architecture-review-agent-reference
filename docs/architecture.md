@@ -2,7 +2,7 @@
 
 ## The flow
 
-\![Architecture](architecture.png)
+![Architecture](architecture.png)
 
 ## What each agent does
 
