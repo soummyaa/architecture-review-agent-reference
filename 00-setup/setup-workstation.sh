@@ -26,7 +26,15 @@ python3 -c 'import sys; raise SystemExit(sys.version_info < (3, 11))' || {
 	exit 1
 }
 
-python3 -m venv "$VENV_DIR"
+if [[ -d "$VENV_DIR" ]]; then
+	if [[ ! -x "$VENV_DIR/bin/python" ]]; then
+		echo "$VENV_DIR exists but is not a valid virtual environment." >&2
+		exit 1
+	fi
+else
+	python3 -m venv "$VENV_DIR"
+fi
+
 "$VENV_DIR/bin/python" -m pip install --upgrade pip
 "$VENV_DIR/bin/python" -m pip install \
 	-r "$REPO_ROOT/00-setup/requirements.txt" \
