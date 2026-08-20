@@ -23,9 +23,43 @@ resource foundryPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = 
   location: 'global'
 }
 
+resource foundryServicesPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = if (createPrivateDnsZones) {
+  name: 'privatelink.services.ai.azure.com'
+  location: 'global'
+}
+
+resource foundryOpenAiPrivateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = if (createPrivateDnsZones) {
+  name: 'privatelink.openai.azure.com'
+  location: 'global'
+}
+
 resource foundryPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (createPrivateDnsZones) {
   parent: foundryPrivateDnsZone
   name: 'foundry-vnet-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: virtualNetworkResourceId
+    }
+  }
+}
+
+resource foundryServicesPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (createPrivateDnsZones) {
+  parent: foundryServicesPrivateDnsZone
+  name: 'foundry-services-vnet-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: virtualNetworkResourceId
+    }
+  }
+}
+
+resource foundryOpenAiPrivateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = if (createPrivateDnsZones) {
+  parent: foundryOpenAiPrivateDnsZone
+  name: 'foundry-openai-vnet-link'
   location: 'global'
   properties: {
     registrationEnabled: false
@@ -65,6 +99,18 @@ resource foundryPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateD
         name: 'cognitiveservices'
         properties: {
           privateDnsZoneId: foundryPrivateDnsZone.id
+        }
+      }
+      {
+        name: 'services'
+        properties: {
+          privateDnsZoneId: foundryServicesPrivateDnsZone.id
+        }
+      }
+      {
+        name: 'openai'
+        properties: {
+          privateDnsZoneId: foundryOpenAiPrivateDnsZone.id
         }
       }
     ]

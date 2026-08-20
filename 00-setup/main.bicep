@@ -59,9 +59,12 @@ var foundryName = take('${namePrefix}-${uniqueSuffix}', 64)
 var virtualNetworkName = '${namePrefix}-vnet'
 var privateEndpointSubnetName = 'private-endpoints'
 var jumpBoxSubnetName = 'jumpbox'
+var bastionSubnetName = 'AzureBastionSubnet'
 var jumpBoxName = '${namePrefix}-jumpbox'
 var jumpBoxNicName = '${namePrefix}-jumpbox-nic'
 var jumpBoxNsgName = '${namePrefix}-jumpbox-nsg'
+var bastionName = '${namePrefix}-bastion'
+var bastionPublicIpName = '${namePrefix}-bastion-pip'
 var useExistingNetworking = !empty(existingVirtualNetworkResourceId) && !empty(existingPrivateEndpointSubnetResourceId)
 var deployManagedVirtualNetwork = enablePrivateNetworking && !useExistingNetworking
 var virtualNetworkResourceId = useExistingNetworking ? existingVirtualNetworkResourceId : virtualNetwork.id
@@ -88,12 +91,20 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = if (dep
           privateEndpointNetworkPolicies: 'Disabled'
         }
       }
-      {
-        name: jumpBoxSubnetName
-        properties: {
-          addressPrefix: '10.0.2.0/24'
+      ...(deployJumpBox ? [
+        {
+          name: jumpBoxSubnetName
+          properties: {
+            addressPrefix: '10.0.2.0/24'
+          }
         }
-      }
+        {
+          name: bastionSubnetName
+          properties: {
+            addressPrefix: '10.0.3.0/26'
+          }
+        }
+      ] : [])
     ]
   }
 }
@@ -106,6 +117,11 @@ resource privateEndpointSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-0
 resource jumpBoxSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existing = if (deployManagedVirtualNetwork && deployJumpBox) {
   parent: virtualNetwork
   name: jumpBoxSubnetName
+}
+
+resource bastionSubnet 'Microsoft.Network/virtualNetworks/subnets@2024-05-01' existing = if (deployManagedVirtualNetwork && deployJumpBox) {
+  parent: virtualNetwork
+  name: bastionSubnetName
 }
 
 module foundryProvisioning 'provision-foundry.bicep' = {
@@ -193,6 +209,42 @@ resource jumpBoxNic 'Microsoft.Network/networkInterfaces@2024-05-01' = if (deplo
     networkSecurityGroup: {
       id: jumpBoxNsg.id
     }
+  }
+}
+
+resource bastionPublicIp 'Microsoft.Network/publicIPAddresses@2024-05-01' = if (deployManagedVirtualNetwork && deployJumpBox) {
+  name: bastionPublicIpName
+  location: location
+  sku: {
+    name: 'Standard'
+  }
+  properties: {
+    publicIPAllocationMethod: 'Static'
+  }
+}
+
+resource bastionHost 'Microsoft.Network/bastionHosts@2024-05-01' = if (deployManagedVirtualNetwork && deployJumpBox) {
+  name: bastionName
+  location: location
+  sku: {
+    name: 'Standard'
+  }
+  properties: {
+    enableTunneling: true
+    ipConfigurations: [
+      {
+        name: 'configuration'
+        properties: {
+          privateIPAllocationMethod: 'Dynamic'
+          publicIPAddress: {
+            id: bastionPublicIp.id
+          }
+          subnet: {
+            id: bastionSubnet.id
+          }
+        }
+      }
+    ]
   }
 }
 

@@ -16,6 +16,31 @@ the workshop SharePoint site through Microsoft Graph.
 The devcontainer installs Azure CLI, Bicep, Python, and the packages in
 `requirements.txt` globally. Do not create or activate a virtual environment.
 
+## Private workstation setup
+
+The machine used from inside the private network, including a jump box, needs:
+
+- Azure CLI. For command-line Bastion connections, install the `bastion` and
+	`ssh` Azure CLI extensions.
+- Python 3.11 or later and the matching `python3-venv` package. Debian and
+	Ubuntu block system-wide pip installs into their managed Python environment.
+- Git.
+- A virtual environment so workshop dependencies remain isolated from the
+	operating system's managed Python packages.
+- The requirements from every numbered module, not only `00-setup`.
+
+On a fresh Ubuntu machine, clone this repository and run the setup script from
+any directory. It is safe to re-run and installs all module requirements in
+one pip command:
+
+```bash
+./00-setup/setup-workstation.sh
+source .venv/bin/activate
+```
+
+The script uses `sudo` to install operating-system packages and Azure CLI. It
+creates `.venv` at the repository root.
+
 ## Networking modes
 
 Private networking is enabled by default for regulated environments. Public
@@ -26,8 +51,8 @@ reach the private endpoint.
 ### Greenfield
 
 By default, the template creates a virtual network, dedicated private endpoint
-and jump-box subnets, a private DNS zone and link, and a private endpoint for
-Microsoft Foundry. Deploy without the existing-network parameters:
+subnet, private DNS zones and links, and a private endpoint for Microsoft
+Foundry. Deploy without the existing-network parameters:
 
 ```bash
 az deployment group create \
@@ -40,9 +65,11 @@ az deployment group create \
 		sharepointSitePath="/sites/<workshop-site>"
 ```
 
-The generated network must be reachable through corporate peering, a VPN, or
-Azure Bastion. To deploy the optional Linux jump box, provide an SSH public key
-and set `deployJumpBox=true`. The VM has no public IP:
+To deploy the optional Linux jump box and Azure Bastion, provide an SSH public
+key and set `deployJumpBox=true`. The template creates the required
+`AzureBastionSubnet` and a Bastion host. The Bastion host uses the Standard SKU
+with native client support enabled; Basic supports portal connections only.
+The VM has no public IP:
 
 ```bash
 az deployment group create \
@@ -55,6 +82,28 @@ az deployment group create \
 		sharepointSitePath="/sites/<workshop-site>" \
 		sshPublicKey="$(cat ~/.ssh/id_ed25519.pub)" \
 		deployJumpBox=true
+```
+
+Validate private mode by connecting to the jump box with the Bastion native
+client, then running the validator where the private endpoints resolve:
+
+```bash
+az network bastion ssh \
+	--name archreview-bastion \
+	--resource-group "$AZURE_RESOURCE_GROUP" \
+	--target-resource-id "$(az vm show \
+		--name archreview-jumpbox \
+		--resource-group "$AZURE_RESOURCE_GROUP" \
+		--query id -o tsv)" \
+	--auth-type ssh-key \
+	--username workshopadmin \
+	--ssh-key ~/.ssh/id_ed25519
+```
+
+From the jump box, run:
+
+```bash
+python 00-setup/validate.py
 ```
 
 ### Landing zone
@@ -83,6 +132,8 @@ create private endpoints in it. Set `createPrivateDnsZones=false` when central
 private DNS already provides the required zones and virtual network links:
 
 - `privatelink.cognitiveservices.azure.com`
+- `privatelink.services.ai.azure.com`
+- `privatelink.openai.azure.com`
 
 With DNS creation disabled, the template does not create private DNS zones,
 virtual network links, or private endpoint DNS zone groups. The landing-zone
