@@ -1,5 +1,8 @@
 # 05 — ADR Generation
 
+> **Demonstration module:** The facilitator demonstrates this module rather
+> than building it live with participants.
+
 ## Goal
 Render the ADR author agent's output into an Architecture Decision Record
 as a local DOCX file. Writing the completed document back to SharePoint is

@@ -1,7 +1,4 @@
-# 04 — Research
-
-> **Reference module:** Participants read and pull this module as reference
-> code. It is not part of the live workshop build.
+# Module 04: Research Agent
 
 ## Goal
 Research a submitted technology from external sources, restricted to a
@@ -14,8 +11,9 @@ configurable domain allowlist, with every claim carrying a citation.
   optional connection.
 - An approved list of source domains.
 
-## Run
-Run the reference against one of the existing synthetic submissions:
+## Run Standalone
+
+Run the agent against one of the existing synthetic submissions:
 
 ```bash
 python -m pip install -r 04-research/requirements.txt
@@ -47,5 +45,6 @@ python -m unittest -v test_run.py
 
 ## What you should understand by the end
 How to constrain external grounding so the output is defensible, and why
-an allowlist is a governance control rather than a technical detail. This
-optional capability is separate from the live submission-to-reviewed-ADR loop.
+an allowlist is a governance control rather than a technical detail. The
+research agent is built live in this module; its external search capability
+remains optional in the submission-to-reviewed-ADR loop.

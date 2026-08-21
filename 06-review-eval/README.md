@@ -63,6 +63,9 @@ The orchestrator is deliberately linear:
 
 ## Evaluation harness
 
+> **Reference code:** Participants read and pull the evaluation harness rather
+> than building it live. The reviewer agent above is built live.
+
 Run the live decision regression after changing agent instructions:
 
 ```bash
