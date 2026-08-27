@@ -223,6 +223,7 @@ __pycache__/
 working-output*.json
 working-adr*.json
 working-review*.json
+working/format-test/
 05-adr-generation/output/
 docs/azure-icons/
 docs/azure-icons/
