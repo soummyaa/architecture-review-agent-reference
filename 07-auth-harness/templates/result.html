@@ -3,33 +3,56 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Reviewed ADR | Architecture Review</title>
+    <title>Review status | Architecture Review</title>
+    {% if run.status not in ("complete", "failed") %}
+    <meta http-equiv="refresh" content="3">
+    {% endif %}
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
   </head>
   <body>
     <header class="site-header">
       <div>
-        <p class="eyebrow">Completed review</p>
-        <h1>{{ record.reviewed_adr.title }}</h1>
+        <p class="eyebrow">Review run</p>
+        <h1>
+          {% if run.status == "complete" %}
+          {{ run.record.reviewed_adr.title }}
+          {% else %}
+          {{ run.submission }}
+          {% endif %}
+        </h1>
       </div>
       <a class="button secondary" href="{{ url_for('index') }}">New review</a>
     </header>
 
     <main>
-      <section class="run-summary" aria-label="Run identity">
+      <section class="run-summary" aria-label="Run status">
         <dl>
-          <div><dt>Submitted by</dt><dd>{{ record.user.display_name }}</dd></div>
-          <div><dt>Object ID</dt><dd>{{ record.user.object_id }}</dd></div>
-          <div><dt>Submission</dt><dd>{{ record.submission }}</dd></div>
-          <div><dt>Decision</dt><dd>{{ record.reviewed_adr.decision }}</dd></div>
+          <div><dt>Submitted by</dt><dd>{{ run.user.display_name }}</dd></div>
+          <div><dt>Object ID</dt><dd>{{ run.user.object_id }}</dd></div>
+          <div><dt>Submission</dt><dd>{{ run.submission }}</dd></div>
+          <div><dt>Status</dt><dd>{{ run.status }}</dd></div>
         </dl>
       </section>
 
+      {% if run.status == "failed" %}
+      <section class="result" aria-labelledby="error-heading">
+        <p class="eyebrow">Run failed</p>
+        <h2 id="error-heading">Error</h2>
+        <pre>{{ run.error }}</pre>
+      </section>
+      {% elif run.status == "complete" %}
       <section class="result" aria-labelledby="result-heading">
         <p class="eyebrow">Reviewed ADR</p>
         <h2 id="result-heading">Structured result</h2>
-        <pre>{{ record.reviewed_adr | tojson(indent=2) }}</pre>
+        <pre>{{ run.record.reviewed_adr | tojson(indent=2) }}</pre>
       </section>
+      {% else %}
+      <section class="result" aria-live="polite">
+        <p class="eyebrow">Current stage</p>
+        <h2>{{ run.status | replace("_", " ") | title }}</h2>
+        <p>This page refreshes automatically while the agent chain runs.</p>
+      </section>
+      {% endif %}
     </main>
   </body>
 </html>

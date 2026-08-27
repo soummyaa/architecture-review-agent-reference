@@ -9,9 +9,10 @@ import os
 import secrets
 import subprocess
 import sys
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from uuid import uuid4
 
 from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
@@ -39,23 +40,50 @@ def create_auth_client() -> EntraAuth:
     return EntraAuth(client_id, tenant_id, redirect_uri)
 
 
-def run_agent_chain(submission_path: Path, skip_research: bool) -> dict[str, Any]:
+def run_agent_chain(
+    submission_path: Path,
+    skip_research: bool,
+    update_stage: Callable[[str], None],
+) -> dict[str, Any]:
     command = [sys.executable, str(REVIEW_ENTRY_POINT), str(submission_path)]
     if skip_research:
         command.append("--skip-research")
 
-    completed = subprocess.run(
+    update_stage("standards")
+    process = subprocess.Popen(
         command,
         cwd=REPOSITORY_ROOT,
-        check=False,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
+        bufsize=1,
     )
-    if completed.returncode != 0:
-        detail = completed.stderr.strip() or "The architecture review chain failed"
+    assert process.stdout is not None
+    assert process.stderr is not None
+
+    stderr_lines: list[str] = []
+
+    def read_stderr() -> None:
+        for line in process.stderr:
+            stderr_lines.append(line)
+            if "Standards agent:" in line:
+                update_stage("adr_author" if skip_research else "research")
+            elif "Research agent:" in line:
+                update_stage("adr_author")
+            elif "ADR author agent:" in line:
+                update_stage("reviewer")
+
+    stderr_reader = threading.Thread(target=read_stderr, daemon=True)
+    stderr_reader.start()
+    stdout = process.stdout.read()
+    return_code = process.wait()
+    stderr_reader.join()
+
+    if return_code != 0:
+        detail = "".join(stderr_lines).strip() or "The architecture review chain failed"
         raise RuntimeError(detail)
     try:
-        result = json.loads(completed.stdout)
+        result = json.loads(stdout)
         return result["review"]["reviewed_adr"]
     except (json.JSONDecodeError, KeyError, TypeError) as error:
         raise RuntimeError("The architecture review chain returned invalid output") from error
@@ -67,10 +95,49 @@ def append_run_record(log_path: Path, record: dict[str, Any]) -> None:
         run_log.write(json.dumps(record, sort_keys=True) + "\n")
 
 
+def execute_run(
+    run_id: str,
+    submission_name: str,
+    submission_path: Path,
+    skip_research: bool,
+    user: dict[str, str],
+    runs: dict[str, dict[str, Any]],
+    runs_lock: threading.Lock,
+    run_log_path: Path,
+) -> None:
+    def update_stage(stage: str) -> None:
+        with runs_lock:
+            runs[run_id]["status"] = stage
+
+    try:
+        reviewed_adr = run_agent_chain(submission_path, skip_research, update_stage)
+        record = {
+            "run_id": run_id,
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "user": {
+                "object_id": user["object_id"],
+                "display_name": user["display_name"],
+            },
+            "submission": submission_name,
+            "reviewed_adr": reviewed_adr,
+        }
+        append_run_record(run_log_path, record)
+        with runs_lock:
+            runs[run_id].update(status="complete", record=record)
+    except Exception as error:
+        with runs_lock:
+            runs[run_id].update(status="failed", error=str(error))
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
     app.secret_key = secrets.token_bytes(32)
     app.config["RUN_LOG_PATH"] = DEFAULT_RUN_LOG
+    # In-memory state is intentional for this single-presenter teaching harness.
+    runs: dict[str, dict[str, Any]] = {}
+    runs_lock = threading.Lock()
+    app.config["RUNS"] = runs
+    app.config["RUNS_LOCK"] = runs_lock
 
     @app.get("/")
     def index() -> str:
@@ -129,27 +196,44 @@ def create_app() -> Flask:
         if submission_path is None:
             abort(400, "Select a valid synthetic submission")
 
-        try:
-            reviewed_adr = run_agent_chain(
-                submission_path,
-                skip_research=request.form.get("skip_research") == "on",
-            )
-        except RuntimeError as error:
-            flash(str(error), "error")
-            return redirect(url_for("index"))
-
-        record = {
-            "run_id": str(uuid4()),
-            "completed_at": datetime.now(timezone.utc).isoformat(),
-            "user": {
-                "object_id": str(user["object_id"]),
-                "display_name": str(user["display_name"]),
-            },
-            "submission": submission_name,
-            "reviewed_adr": reviewed_adr,
+        run_id = str(uuid4())
+        run_user = {
+            "object_id": str(user["object_id"]),
+            "display_name": str(user["display_name"]),
         }
-        append_run_record(Path(app.config["RUN_LOG_PATH"]), record)
-        return render_template("result.html", record=record)
+        with runs_lock:
+            runs[run_id] = {
+                "run_id": run_id,
+                "status": "queued",
+                "submission": submission_name,
+                "user": run_user,
+            }
+        threading.Thread(
+            target=execute_run,
+            args=(
+                run_id,
+                submission_name,
+                submission_path,
+                request.form.get("skip_research") == "on",
+                run_user,
+                runs,
+                runs_lock,
+                Path(app.config["RUN_LOG_PATH"]),
+            ),
+            daemon=True,
+        ).start()
+        return redirect(url_for("run_status", run_id=run_id))
+
+    @app.get("/runs/<run_id>")
+    def run_status(run_id: str) -> Any:
+        user = session.get("user")
+        if not isinstance(user, dict):
+            return redirect(url_for("sign_in"))
+        with runs_lock:
+            run = dict(runs.get(run_id, {}))
+        if not run or run["user"]["object_id"] != user.get("object_id"):
+            abort(404)
+        return render_template("result.html", run=run)
 
     return app
 

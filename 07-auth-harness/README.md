@@ -107,9 +107,15 @@ the review. Research is enabled by default and uses the existing Module 06
 configuration. Select **Skip research** when the Foundry web-search connection
 or approved source allowlist is not configured.
 
-The request blocks while the existing agent chain runs. This simple synchronous
-behavior is intentional for the workshop and is not a production job-processing
-design.
+Submitting the form creates an in-memory run and returns a run ID immediately.
+The browser opens a status page that refreshes while the background thread moves
+through `queued`, `standards`, `research`, `adr_author`, and `reviewer`. It then
+shows the reviewed ADR at `complete`, or the downstream error at `failed`.
+
+Run state is intentionally held in one process for this single-presenter
+teaching harness. Restarting the app loses status pages for active and completed
+runs, although completed JSONL records remain on disk. This is not a production
+job queue or multi-user service.
 
 ## Run records
 
@@ -117,6 +123,7 @@ For each completed review, the harness writes a JSON Lines record to
 `07-auth-harness/output/auth-runs.jsonl` containing:
 
 - UTC completion time
+- run ID
 - signed-in user's Microsoft Entra object ID
 - signed-in user's display name
 - selected synthetic submission
@@ -146,3 +153,24 @@ PYTHONPATH=07-auth-harness python -m unittest discover \
 
 Tests mock MSAL and the Module 06 process; they do not require an Entra tenant or
 run agents.
+
+## Troubleshooting
+
+### AADSTS50011: redirect URI mismatch
+
+The redirect URI registered in Microsoft Entra must match `AUTH_REDIRECT_URI`
+exactly, including scheme, hostname, port, path, and trailing slash.
+
+Copy the URL from the browser address bar or the Codespaces **Ports** panel.
+Copying a URL from rendered page text can silently append accessibility text
+such as `(opens in new window)`, making the URI invalid.
+
+In GitHub Codespaces, use the forwarded HTTPS URL, for example:
+
+```bash
+export AUTH_REDIRECT_URI="https://<codespace-name>-5000.app.github.dev/auth/callback"
+```
+
+Register that exact HTTPS URI in the Entra app registration. Do not register or
+use `http://localhost:5000/auth/callback` when the browser reaches the harness
+through the Codespaces forwarded URL.
