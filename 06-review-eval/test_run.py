@@ -86,6 +86,33 @@ class TracingTests(unittest.TestCase):
     def test_missing_connection_string_leaves_tracing_disabled(self) -> None:
         self.assertFalse(configure_tracing(None))
 
+    def test_shutdown_flushes_and_stops_logging_last(self) -> None:
+        tracer_provider = MagicMock()
+        meter_provider = MagicMock()
+        logger_provider = MagicMock()
+        providers = (tracer_provider, meter_provider, logger_provider)
+        calls: list[str] = []
+        for name, provider in zip(("tracer", "meter", "logger"), providers):
+            provider.force_flush.side_effect = lambda name=name: calls.append(f"flush {name}")
+            provider.shutdown.side_effect = lambda name=name: calls.append(f"shutdown {name}")
+
+        workshop_core._shutdown_telemetry(*providers)
+
+        for provider in providers:
+            provider.force_flush.assert_called_once_with()
+            provider.shutdown.assert_called_once_with()
+        self.assertEqual(
+            calls,
+            [
+                "flush tracer",
+                "flush meter",
+                "flush logger",
+                "shutdown tracer",
+                "shutdown meter",
+                "shutdown logger",
+            ],
+        )
+
     @patch("opentelemetry.trace.get_tracer")
     @patch.object(workshop_core, "_TRACING_CONFIGURED", True)
     def test_traced_span_uses_documented_agent_name(self, get_tracer: MagicMock) -> None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import atexit
 import json
 import re
 import sys
@@ -33,6 +34,21 @@ MATERIAL_NON_CONFORMANCE_STATUSES = frozenset({"does_not_conform"})
 EVIDENCE_GAP_STATUSES = frozenset({"not_evidenced", "partially_conforms"})
 
 
+def _shutdown_telemetry(*providers: Any) -> None:
+    """Flush and stop providers while the logging pipeline is still available."""
+    for provider in providers:
+        try:
+            provider.force_flush()
+        except Exception:
+            pass
+
+    for provider in providers:
+        try:
+            provider.shutdown()
+        except Exception:
+            pass
+
+
 def configure_tracing(connection_string: str | None) -> bool:
     """Configure Azure Monitor tracing when a deployment output is available."""
     global _TRACING_CONFIGURED
@@ -43,6 +59,16 @@ def configure_tracing(connection_string: str | None) -> bool:
     from azure.monitor.opentelemetry import configure_azure_monitor
 
     configure_azure_monitor(connection_string=connection_string)
+
+    from opentelemetry import metrics, trace
+    from opentelemetry._logs import get_logger_provider
+
+    atexit.register(
+        _shutdown_telemetry,
+        trace.get_tracer_provider(),
+        metrics.get_meter_provider(),
+        get_logger_provider(),
+    )
     _TRACING_CONFIGURED = True
     return True
 
