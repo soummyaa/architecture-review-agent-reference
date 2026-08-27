@@ -99,7 +99,6 @@ class FoundryClientTests(unittest.TestCase):
         result = research_submission(
             "https://example.services.ai.azure.com/api/projects/example",
             "example-model",
-            "connection-id",
             "research-agent",
             "SUB-001",
             "Example Technology",
@@ -119,10 +118,7 @@ class FoundryClientTests(unittest.TestCase):
             serialized_tool["filters"]["allowed_domains"],
             ["learn.microsoft.com"],
         )
-        self.assertEqual(
-            serialized_tool["custom_search_configuration"]["project_connection_id"],
-            "connection-id",
-        )
+        self.assertNotIn("custom_search_configuration", serialized_tool)
 
 
 if __name__ == "__main__":

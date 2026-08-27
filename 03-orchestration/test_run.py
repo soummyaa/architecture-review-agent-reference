@@ -347,10 +347,7 @@ class FoundryClientTests(unittest.TestCase):
         definition = project_client.agents.create_version.call_args.kwargs["definition"]
         serialized_tool = definition.tools[0].as_dict()
         self.assertEqual(serialized_tool["filters"]["allowed_domains"], ["example.com"])
-        self.assertEqual(
-            serialized_tool["custom_search_configuration"]["project_connection_id"],
-            "connection-id",
-        )
+        self.assertNotIn("custom_search_configuration", serialized_tool)
         self.assertIn("Validated 1 research citations", stderr.getvalue())
 
     def test_adr_author_uses_shared_foundry_clients(self) -> None:

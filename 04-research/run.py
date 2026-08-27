@@ -17,7 +17,6 @@ from azure.ai.projects.models import (
     PromptAgentDefinition,
     PromptAgentDefinitionTextOptions,
     TextResponseFormatJsonSchema,
-    WebSearchConfiguration,
     WebSearchTool,
     WebSearchToolFilters,
 )
@@ -67,11 +66,6 @@ def parse_args() -> argparse.Namespace:
         action="append",
         required=True,
         help="Approved source domain. Repeat this option for multiple domains.",
-    )
-    parser.add_argument(
-        "--web-search-connection-id",
-        default=os.getenv("FOUNDRY_WEB_SEARCH_CONNECTION_ID"),
-        help="Foundry web-search project connection ID (or FOUNDRY_WEB_SEARCH_CONNECTION_ID).",
     )
     parser.add_argument(
         "--project-endpoint",
@@ -136,7 +130,7 @@ def load_deployment_outputs(resource_group: str | None, deployment_name: str) ->
     }
 
 
-def resolve_foundry_config(args: argparse.Namespace) -> tuple[str, str, str]:
+def resolve_foundry_config(args: argparse.Namespace) -> tuple[str, str]:
     outputs = (
         {}
         if args.project_endpoint and args.model_deployment
@@ -147,15 +141,14 @@ def resolve_foundry_config(args: argparse.Namespace) -> tuple[str, str, str]:
     values = {
         "project endpoint": project_endpoint,
         "model deployment": model_deployment,
-        "web-search connection ID": args.web_search_connection_id,
     }
     missing = [name for name, value in values.items() if not value]
     if missing:
         raise RuntimeError(
-            f"Missing {', '.join(missing)}. Configure the Foundry project and an existing "
-            "web-search project connection before running this reference module."
+            f"Missing {', '.join(missing)}. Configure the Foundry project before running "
+            "this reference module."
         )
-    return project_endpoint, model_deployment, args.web_search_connection_id
+    return project_endpoint, model_deployment
 
 
 def read_submission(path: Path) -> tuple[str, str, str]:
@@ -237,7 +230,6 @@ an architect assess product capabilities, security, support, deployment, and lif
 def research_submission(
     project_endpoint: str,
     model_deployment: str,
-    connection_id: str,
     agent_name: str,
     submission_id: str,
     technology: str,
@@ -258,9 +250,6 @@ def research_submission(
         try:
             search_tool = WebSearchTool(
                 filters=WebSearchToolFilters(allowed_domains=allowed_domains),
-                custom_search_configuration=WebSearchConfiguration(
-                    project_connection_id=connection_id
-                ),
                 search_context_size="medium",
             )
             agent = project_client.agents.create_version(
@@ -312,11 +301,10 @@ def main() -> int:
     try:
         allowed_domains = normalize_allowed_domains(args.allowed_domain)
         submission_id, technology, submission = read_submission(args.submission)
-        project_endpoint, model_deployment, connection_id = resolve_foundry_config(args)
+        project_endpoint, model_deployment = resolve_foundry_config(args)
         research = research_submission(
             project_endpoint,
             model_deployment,
-            connection_id,
             args.agent_name,
             submission_id,
             technology,

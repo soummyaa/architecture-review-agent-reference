@@ -230,11 +230,6 @@ def orchestrate_submission(
         if skip_research:
             print("Research agent skipped", file=sys.stderr)
         else:
-            if not web_search_connection_id:
-                raise RuntimeError(
-                    "Missing web-search connection ID. Set FOUNDRY_WEB_SEARCH_CONNECTION_ID, "
-                    "pass --web-search-connection-id, or use --skip-research."
-                )
             research_started = time.perf_counter()
             research = run_research_agent(
                 project_client,

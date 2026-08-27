@@ -10,7 +10,7 @@ exists to demonstrate.
 ## Prerequisites
 - Completed [Module 00](../00-setup/README.md), including a successful validator run
 - A synthetic submission from `data/synthetic/submissions`
-- An existing Foundry web-search project connection, unless research is skipped
+- An approved research domain allowlist
 
 ## Run
 From the repository root:
@@ -18,7 +18,6 @@ From the repository root:
 ```bash
 python -m pip install -r 03-orchestration/requirements.txt
 export AZURE_RESOURCE_GROUP=<your-resource-group>
-export FOUNDRY_WEB_SEARCH_CONNECTION_ID=<project-connection-id>
 python 03-orchestration/run.py \
   data/synthetic/submissions/SUB-002-quickship-document-service.md
 ```
@@ -26,8 +25,7 @@ python 03-orchestration/run.py \
 You can pass `--project-endpoint` and `--model-deployment` instead of using
 `AZURE_RESOURCE_GROUP`. Authentication uses `DefaultAzureCredential` and the
 `https://ai.azure.com/.default` scope required by the Foundry project endpoint.
-The web-search connection is optional infrastructure and is not provisioned by
-Module 00.
+Plain web search is managed by Foundry and does not require a project connection.
 
 Approved research domains are stored in
 [`research-allowlist.json`](research-allowlist.json). Replace its example

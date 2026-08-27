@@ -13,7 +13,6 @@ from azure.ai.projects.models import (
     PromptAgentDefinition,
     PromptAgentDefinitionTextOptions,
     TextResponseFormatJsonSchema,
-    WebSearchConfiguration,
     WebSearchTool,
     WebSearchToolFilters,
 )
@@ -111,7 +110,7 @@ def run_research_agent(
     model_deployment: str,
     agent_name: str,
     report: ConformanceReport,
-    connection_id: str,
+    _connection_id: str | None,
     allowed_domains: list[str],
     keep_agent: bool = False,
 ) -> TechnologyResearch:
@@ -121,9 +120,6 @@ def run_research_agent(
     try:
         search_tool = WebSearchTool(
             filters=WebSearchToolFilters(allowed_domains=allowed_domains),
-            custom_search_configuration=WebSearchConfiguration(
-                project_connection_id=connection_id
-            ),
             search_context_size="medium",
         )
         agent = project_client.agents.create_version(

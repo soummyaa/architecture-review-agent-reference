@@ -7,8 +7,6 @@ configurable domain allowlist, with every claim carrying a citation.
 ## Prerequisites
 - Completed [Module 00](../00-setup/README.md), including a working Foundry
   project and model deployment.
-- An existing web-search project connection. Module 00 does not provision this
-  optional connection.
 - An approved list of source domains.
 
 ## Run Standalone
@@ -18,7 +16,6 @@ Run the agent against one of the existing synthetic submissions:
 ```bash
 python -m pip install -r 04-research/requirements.txt
 export AZURE_RESOURCE_GROUP=<your-resource-group>
-export FOUNDRY_WEB_SEARCH_CONNECTION_ID=<project-connection-id>
 python 04-research/run.py \
   data/synthetic/submissions/SUB-001-northwind-analytics-cloud.md \
   --allowed-domain learn.microsoft.com \
@@ -27,7 +24,8 @@ python 04-research/run.py \
 
 The command returns a typed `TechnologyResearch` object as JSON. Every claim
 contains one citation. The domains are applied to the Foundry web-search tool
-and checked again against the returned URLs.
+and checked again against the returned URLs. Plain web search is managed by
+Foundry and does not require a project connection.
 
 The technologies in the workshop submissions are synthetic. An empty claims
 list is therefore a valid and expected result when no approved source confirms
