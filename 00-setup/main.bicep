@@ -60,6 +60,8 @@ param jumpBoxAdminUsername string = 'workshopadmin'
 
 var uniqueSuffix = uniqueString(resourceGroup().id)
 var foundryName = take('${namePrefix}-${uniqueSuffix}', 64)
+var logAnalyticsWorkspaceName = take('${namePrefix}-${uniqueSuffix}-logs', 63)
+var applicationInsightsName = take('${namePrefix}-${uniqueSuffix}-appi', 260)
 var virtualNetworkName = '${namePrefix}-vnet'
 var privateEndpointSubnetName = 'private-endpoints'
 var jumpBoxSubnetName = 'jumpbox'
@@ -139,6 +141,15 @@ module foundryProvisioning 'provision-foundry.bicep' = {
     modelSkuName: modelSkuName
     modelDeploymentName: modelDeploymentName
     modelCapacity: modelCapacity
+  }
+}
+
+module observabilityProvisioning 'provision-observability.bicep' = {
+  name: 'provision-observability'
+  params: {
+    location: location
+    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+    applicationInsightsName: applicationInsightsName
   }
 }
 
@@ -319,6 +330,8 @@ output foundryResourceId string = foundry.id
 output foundryResourceName string = foundry.name
 output modelEndpoint string = 'https://${foundry.name}.openai.azure.com/'
 output modelDeploymentName string = foundryProvisioning.outputs.modelDeploymentName
+output applicationInsightsConnectionString string = observabilityProvisioning.outputs.applicationInsightsConnectionString
+output applicationInsightsResourceId string = observabilityProvisioning.outputs.applicationInsightsResourceId
 output sharepointHostname string = sharepointHostname
 output sharepointSitePath string = sharepointSitePath
 output virtualNetworkResourceId string = enablePrivateNetworking ? virtualNetworkResourceId : ''

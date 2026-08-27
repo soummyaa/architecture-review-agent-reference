@@ -2,6 +2,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import workshop_core
 from run import (
     AI_FOUNDRY_SCOPE,
     AdrCondition,
@@ -18,6 +19,7 @@ from run import (
     run_reviewer_agent,
     validate_review,
 )
+from workshop_core import configure_tracing, traced_span
 
 
 def example_citation() -> Citation:
@@ -77,6 +79,24 @@ def passing_review() -> AdrReview:
         omitted_findings=[],
         reviewed_adr=example_adr(),
     )
+
+
+class TracingTests(unittest.TestCase):
+    @patch.object(workshop_core, "_TRACING_CONFIGURED", False)
+    def test_missing_connection_string_leaves_tracing_disabled(self) -> None:
+        self.assertFalse(configure_tracing(None))
+
+    @patch("opentelemetry.trace.get_tracer")
+    @patch.object(workshop_core, "_TRACING_CONFIGURED", True)
+    def test_traced_span_uses_documented_agent_name(self, get_tracer: MagicMock) -> None:
+        @traced_span("Standards agent")
+        def operation() -> str:
+            return "complete"
+
+        self.assertEqual(operation(), "complete")
+        get_tracer.return_value.start_as_current_span.assert_called_once_with(
+            "Standards agent"
+        )
 
 
 class OrchestratorTests(unittest.TestCase):

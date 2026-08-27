@@ -27,6 +27,11 @@ AI_FOUNDRY_SCOPE = "https://ai.azure.com/.default"
 DEFAULT_AGENT_NAME = "architecture-standards-agent"
 DEFAULT_DEPLOYMENT_NAME = "architecture-review-setup"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from workshop_core import configure_tracing, traced_span
+
 DEFAULT_STANDARDS_DIRECTORY = REPOSITORY_ROOT / "data" / "synthetic" / "standards"
 STANDARD_ID_PATTERN = re.compile(r"^# (STD-\d+):", re.MULTILINE)
 SECTION_PATTERN = re.compile(r"^### (\d+\. .+)$", re.MULTILINE)
@@ -161,6 +166,7 @@ def resolve_foundry_config(args: argparse.Namespace) -> tuple[str, str]:
         if args.project_endpoint and args.model_deployment
         else load_deployment_outputs(args.resource_group, args.deployment_name)
     )
+    configure_tracing(outputs.get("applicationInsightsConnectionString"))
     project_endpoint = args.project_endpoint or outputs.get("foundryProjectEndpoint")
     model_deployment = args.model_deployment or outputs.get("modelDeploymentName")
     missing = [
@@ -243,6 +249,7 @@ Valid citations:
 """
 
 
+@traced_span("Standards agent")
 def review_submission(
     project_endpoint: str,
     model_deployment: str,

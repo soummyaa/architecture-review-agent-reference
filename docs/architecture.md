@@ -47,3 +47,17 @@ The handoff between agents is a typed schema, not prose. This is the design deci
 **Why standards remain authoritative.** External sources describe a technology, but they do not define an enterprise's obligations. Research adds context to the ADR; only the internal standards library determines conformance.
 
 **Why agent versions are deleted by default.** Repeated runs would otherwise accumulate versions. Pass `--keep-agent` to leave them in place and inspect the run in the Microsoft Foundry portal.
+
+## Observability
+
+When the setup deployment provides an Application Insights connection string,
+the agent modules configure Azure Monitor OpenTelemetry tracing. An end-to-end
+run creates an `Architecture review` trace with a span for each executed stage:
+`Standards agent`, `Research agent`, `ADR author agent`, and `Reviewer agent`.
+The spans record timing, status, errors, and instrumented dependency calls; they
+do not attach submission, standards, research, or ADR content as attributes.
+
+Tracing makes the review path and failures reconstructable without relying on
+console output. That evidence matters when an architecture decision must be
+auditable, while excluding review payloads reduces unnecessary exposure of
+potentially sensitive information.

@@ -23,6 +23,12 @@ from azure.ai.projects.models import (
 from azure.identity import DefaultAzureCredential
 from pydantic import BaseModel, ConfigDict, Field
 
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from workshop_core import configure_tracing, traced_span
+
 AI_FOUNDRY_SCOPE = "https://ai.azure.com/.default"
 DEFAULT_AGENT_NAME = "architecture-technology-research-agent"
 DEFAULT_DEPLOYMENT_NAME = "architecture-review-setup"
@@ -136,6 +142,7 @@ def resolve_foundry_config(args: argparse.Namespace) -> tuple[str, str]:
         if args.project_endpoint and args.model_deployment
         else load_deployment_outputs(args.resource_group, args.deployment_name)
     )
+    configure_tracing(outputs.get("applicationInsightsConnectionString"))
     project_endpoint = args.project_endpoint or outputs.get("foundryProjectEndpoint")
     model_deployment = args.model_deployment or outputs.get("modelDeploymentName")
     values = {
@@ -227,6 +234,7 @@ an architect assess product capabilities, security, support, deployment, and lif
 """
 
 
+@traced_span("Research agent")
 def research_submission(
     project_endpoint: str,
     model_deployment: str,

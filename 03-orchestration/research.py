@@ -21,7 +21,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from workshop_core import ConformanceReport, TechnologyResearch
+from workshop_core import ConformanceReport, TechnologyResearch, traced_span
 
 DEFAULT_RESEARCH_AGENT_NAME = "architecture-technology-research-agent"
 DEFAULT_RESEARCH_ALLOWLIST = Path(__file__).with_name("research-allowlist.json")
@@ -104,6 +104,7 @@ deployment, and lifecycle.
 """
 
 
+@traced_span("Research agent")
 def run_research_agent(
     project_client: AIProjectClient,
     openai_client: Any,

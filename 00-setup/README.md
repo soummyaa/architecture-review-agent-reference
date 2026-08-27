@@ -2,9 +2,10 @@
 
 ## Goal
 
-Provision the shared Microsoft Foundry project and model deployment. Validate
-that the workshop identity can reach the project, invoke the model, and resolve
-the workshop SharePoint site through Microsoft Graph.
+Provision the shared Microsoft Foundry project, model deployment, Log Analytics
+workspace, and workspace-based Application Insights resource. Validate that the
+workshop identity can reach the project, invoke the model, and resolve the
+workshop SharePoint site through Microsoft Graph.
 
 ## Prerequisites
 
@@ -149,6 +150,12 @@ the existing public service endpoints and does not create the private network.
 The deployment outputs the virtual network and private endpoint subnet
 resource IDs, whether created or supplied, for later integration.
 
+Application Insights ingestion remains public in both networking modes. Agent
+tracing works when the workstation or jump box has outbound access to Azure
+Monitor ingestion endpoints. A deployment that requires private ingestion also
+needs Azure Monitor Private Link Scope, a private endpoint, and private DNS;
+those resources are outside this workshop template.
+
 ## Run Standalone
 
 Sign in, create the workshop resource group, and deploy the resources. Replace
@@ -176,6 +183,11 @@ az deployment group create \
 If the default model version is unavailable in the selected region, also pass
 `modelName`, `modelVersion`, `modelSkuName`, and optionally `modelCapacity` to
 the deployment. The default `modelSkuName` is `DataZoneStandard`.
+
+The deployment outputs `applicationInsightsConnectionString` and
+`applicationInsightsResourceId`. Agent modules read the connection string from
+the same deployment outputs discovered through `AZURE_RESOURCE_GROUP`; if it is
+absent, tracing remains disabled and the modules run normally.
 
 Run the validator directly. It reads the deployment outputs using
 `AZURE_RESOURCE_GROUP`, which the devcontainer sets to

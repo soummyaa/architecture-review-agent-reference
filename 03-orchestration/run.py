@@ -44,9 +44,11 @@ from workshop_core import (
     TechnologyResearch,
     build_adr_author_instructions,
     build_standards_instructions,
+    configure_tracing,
     load_standards,
     run_adr_author_agent,
     run_standards_agent,
+    traced_span,
     validate_adr,
     validate_citations,
 )
@@ -170,6 +172,7 @@ def resolve_foundry_config(args: argparse.Namespace) -> tuple[str, str]:
         if args.project_endpoint and args.model_deployment
         else load_deployment_outputs(args.resource_group, args.deployment_name)
     )
+    configure_tracing(outputs.get("applicationInsightsConnectionString"))
     project_endpoint = args.project_endpoint or outputs.get("foundryProjectEndpoint")
     model_deployment = args.model_deployment or outputs.get("modelDeploymentName")
     missing = [
@@ -188,6 +191,7 @@ def resolve_foundry_config(args: argparse.Namespace) -> tuple[str, str]:
     return project_endpoint, model_deployment
 
 
+@traced_span("Architecture review")
 def orchestrate_submission(
     project_endpoint: str,
     model_deployment: str,

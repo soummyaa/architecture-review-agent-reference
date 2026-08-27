@@ -1,0 +1,39 @@
+targetScope = 'resourceGroup'
+
+@description('Azure region for the observability resources.')
+param location string
+
+@description('Name of the Log Analytics workspace.')
+param logAnalyticsWorkspaceName string
+
+@description('Name of the workspace-based Application Insights resource.')
+param applicationInsightsName string
+
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: logAnalyticsWorkspaceName
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+    features: {
+      enableLogAccessUsingOnlyResourcePermissions: true
+    }
+  }
+}
+
+resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: applicationInsightsName
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspace.id
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
+  }
+}
+
+output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
+output applicationInsightsResourceId string = applicationInsights.id

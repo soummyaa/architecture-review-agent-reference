@@ -6,8 +6,9 @@ import json
 import re
 import sys
 from dataclasses import dataclass
+from functools import wraps
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 from azure.ai.projects import AIProjectClient
 from azure.ai.projects.models import (
@@ -26,9 +27,44 @@ DEFAULT_STANDARDS_DIRECTORY = REPOSITORY_ROOT / "data" / "synthetic" / "standard
 STANDARD_ID_PATTERN = re.compile(r"^# (STD-\d+):", re.MULTILINE)
 SECTION_PATTERN = re.compile(r"^### (\d+\. .+)$", re.MULTILINE)
 SUBMISSION_ID_PATTERN = re.compile(r"^\*\*Submission ID:\*\*\s*(\S+)", re.MULTILINE)
+_TRACING_CONFIGURED = False
 
 MATERIAL_NON_CONFORMANCE_STATUSES = frozenset({"does_not_conform"})
 EVIDENCE_GAP_STATUSES = frozenset({"not_evidenced", "partially_conforms"})
+
+
+def configure_tracing(connection_string: str | None) -> bool:
+    """Configure Azure Monitor tracing when a deployment output is available."""
+    global _TRACING_CONFIGURED
+
+    if not connection_string or _TRACING_CONFIGURED:
+        return _TRACING_CONFIGURED
+
+    from azure.monitor.opentelemetry import configure_azure_monitor
+
+    configure_azure_monitor(connection_string=connection_string)
+    _TRACING_CONFIGURED = True
+    return True
+
+
+def traced_span(span_name: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Wrap an operation in a span when tracing has been configured."""
+
+    def decorator(function: Callable[..., Any]) -> Callable[..., Any]:
+        @wraps(function)
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
+            if not _TRACING_CONFIGURED:
+                return function(*args, **kwargs)
+
+            from opentelemetry import trace
+
+            tracer = trace.get_tracer("architecture-review-workshop")
+            with tracer.start_as_current_span(span_name):
+                return function(*args, **kwargs)
+
+        return wrapped
+
+    return decorator
 
 
 class Citation(BaseModel):
@@ -205,6 +241,7 @@ Citation applicability rule:
 """
 
 
+@traced_span("Standards agent")
 def run_standards_agent(
     project_client: AIProjectClient,
     openai_client: Any,
@@ -369,6 +406,7 @@ def validate_adr(adr: ArchitectureDecisionRecord, report: ConformanceReport) -> 
             )
 
 
+@traced_span("ADR author agent")
 def run_adr_author_agent(
     project_client: AIProjectClient,
     openai_client: Any,
