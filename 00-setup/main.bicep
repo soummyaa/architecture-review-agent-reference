@@ -15,10 +15,14 @@ param namePrefix string = 'archreview'
 param projectName string = 'architecture-review'
 
 @description('Model name from the Microsoft Foundry model catalog.')
-param modelName string = 'gpt-4o-mini'
+param modelName string = 'gpt-5.4-mini'
 
 @description('Model version available in the selected region.')
-param modelVersion string = '2024-07-18'
+param modelVersion string = '2026-03-17'
+
+// DataZoneStandard keeps inference within the data zone; GlobalStandard routes globally, which regulated customers may not permit.
+@description('SKU used for the model deployment.')
+param modelSkuName string = 'DataZoneStandard'
 
 @description('Name used by applications when calling the deployed model.')
 param modelDeploymentName string = 'architecture-review-model'
@@ -132,6 +136,7 @@ module foundryProvisioning 'provision-foundry.bicep' = {
     projectName: projectName
     modelName: modelName
     modelVersion: modelVersion
+    modelSkuName: modelSkuName
     modelDeploymentName: modelDeploymentName
     modelCapacity: modelCapacity
   }

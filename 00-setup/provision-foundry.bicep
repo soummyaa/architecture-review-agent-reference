@@ -15,6 +15,9 @@ param modelName string
 @description('Model version available in the selected region.')
 param modelVersion string
 
+@description('SKU used for the model deployment.')
+param modelSkuName string = 'DataZoneStandard'
+
 @description('Name used by applications when calling the deployed model.')
 param modelDeploymentName string
 
@@ -55,7 +58,7 @@ resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-
   parent: foundry
   name: modelDeploymentName
   sku: {
-    name: 'GlobalStandard'
+    name: modelSkuName
     capacity: modelCapacity
   }
   properties: {
