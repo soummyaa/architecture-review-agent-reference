@@ -10,7 +10,7 @@ reference code for participants to read and pull; it is not built live.
 
 ## Prerequisites
 - Completed [Module 00](../00-setup/README.md), including a successful validator run
-- A Foundry web-search connection configured as described in [Module 03](../03-orchestration/README.md)
+- An approved research domain allowlist as described in [Module 03](../03-orchestration/README.md)
 - Python dependencies installed from this module's `requirements.txt`
 
 ## Run
@@ -20,7 +20,6 @@ structured output:
 ```bash
 python -m pip install -r 06-review-eval/requirements.txt
 export AZURE_RESOURCE_GROUP=<your-resource-group>
-export FOUNDRY_WEB_SEARCH_CONNECTION_ID=<project-connection-id>
 python 06-review-eval/run.py \
   data/synthetic/submissions/SUB-001-northwind-analytics-cloud.md \
   > reviewed-adr.json

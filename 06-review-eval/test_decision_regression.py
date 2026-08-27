@@ -9,6 +9,10 @@ import decision_regression
 from run import ReviewWorkflowResult
 from test_run import example_adr, example_report, passing_review
 
+UNPARSEABLE_STANDARDS_DIRECTORY = (
+    Path(__file__).resolve().parent / "tests" / "fixtures"
+)
+
 
 class DecisionRegressionTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -49,6 +53,28 @@ class DecisionRegressionTests(unittest.TestCase):
             draft_adr=adr,
             review=review,
         )
+
+    def test_unparseable_standards_cause_a_hard_stop(self) -> None:
+        try:
+            standards = decision_regression.load_standards(
+                UNPARSEABLE_STANDARDS_DIRECTORY
+            )
+        except RuntimeError as error:
+            self.assertEqual(
+                str(error),
+                "Standard has no identifier or numbered sections: "
+                f"{UNPARSEABLE_STANDARDS_DIRECTORY / 'STD-001-decimal.md'}",
+            )
+        else:
+            resolved_citation_count = sum(
+                len(standard.sections) for standard in standards
+            )
+            self.assertNotEqual(
+                resolved_citation_count,
+                0,
+                "Run completed with zero resolved citations instead of stopping",
+            )
+            self.fail("Run completed instead of stopping on unparseable standards")
 
     @patch("decision_regression.Path.is_file", return_value=True)
     @patch("decision_regression.orchestrate_submission")
