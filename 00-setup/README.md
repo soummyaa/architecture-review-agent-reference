@@ -150,11 +150,13 @@ the existing public service endpoints and does not create the private network.
 The deployment outputs the virtual network and private endpoint subnet
 resource IDs, whether created or supplied, for later integration.
 
-Application Insights ingestion remains public in both networking modes. Agent
+Application Insights uses public ingestion in this repository, so telemetry
+leaves the virtual network even when `enablePrivateNetworking=true`. Agent
 tracing works when the workstation or jump box has outbound access to Azure
-Monitor ingestion endpoints. A deployment that requires private ingestion also
-needs Azure Monitor Private Link Scope, a private endpoint, and private DNS;
-those resources are outside this workshop template.
+Monitor ingestion endpoints. Environments that block that outbound access, or
+require all telemetry to remain on the private network, need an Azure Monitor
+Private Link Scope with private endpoints and private DNS. This repository does
+not provision those resources.
 
 ## Run Standalone
 

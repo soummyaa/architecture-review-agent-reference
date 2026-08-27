@@ -61,3 +61,10 @@ Tracing makes the review path and failures reconstructable without relying on
 console output. That evidence matters when an architecture decision must be
 auditable, while excluding review payloads reduces unnecessary exposure of
 potentially sensitive information.
+
+Application Insights uses public ingestion in this repository, so telemetry
+leaves the virtual network even when `enablePrivateNetworking=true`.
+Environments that block outbound access to Azure Monitor endpoints, or require
+all telemetry to remain on the private network, need an Azure Monitor Private
+Link Scope with private endpoints and private DNS. This repository does not
+provision one.
