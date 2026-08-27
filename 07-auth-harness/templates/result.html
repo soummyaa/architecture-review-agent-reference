@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reviewed ADR | Architecture Review</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">Completed review</p>
+        <h1>{{ record.reviewed_adr.title }}</h1>
+      </div>
+      <a class="button secondary" href="{{ url_for('index') }}">New review</a>
+    </header>
+
+    <main>
+      <section class="run-summary" aria-label="Run identity">
+        <dl>
+          <div><dt>Submitted by</dt><dd>{{ record.user.display_name }}</dd></div>
+          <div><dt>Object ID</dt><dd>{{ record.user.object_id }}</dd></div>
+          <div><dt>Submission</dt><dd>{{ record.submission }}</dd></div>
+          <div><dt>Decision</dt><dd>{{ record.reviewed_adr.decision }}</dd></div>
+        </dl>
+      </section>
+
+      <section class="result" aria-labelledby="result-heading">
+        <p class="eyebrow">Reviewed ADR</p>
+        <h2 id="result-heading">Structured result</h2>
+        <pre>{{ record.reviewed_adr | tojson(indent=2) }}</pre>
+      </section>
+    </main>
+  </body>
+</html>

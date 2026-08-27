@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Architecture Review</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">Microsoft Foundry workshop</p>
+        <h1>Architecture Review</h1>
+      </div>
+      {% if user %}
+      <form method="post" action="{{ url_for('sign_out') }}">
+        <button class="secondary" type="submit">Sign out</button>
+      </form>
+      {% endif %}
+    </header>
+
+    <main>
+      {% for category, message in get_flashed_messages(with_categories=true) %}
+      <p class="message {{ category }}" role="alert">{{ message }}</p>
+      {% endfor %}
+
+      {% if user %}
+      <section class="identity" aria-labelledby="identity-heading">
+        <div>
+          <p class="eyebrow" id="identity-heading">Signed in</p>
+          <h2>{{ user.display_name }}</h2>
+        </div>
+        <dl>
+          <dt>Object ID</dt>
+          <dd>{{ user.object_id }}</dd>
+        </dl>
+      </section>
+
+      <section class="review-form" aria-labelledby="review-heading">
+        <p class="eyebrow">New run</p>
+        <h2 id="review-heading">Submit for architecture review</h2>
+        <form method="post" action="{{ url_for('review') }}">
+          <input type="hidden" name="form_token" value="{{ form_token }}">
+          <label for="submission">Synthetic submission</label>
+          <select id="submission" name="submission" required>
+            {% for name in submissions %}
+            <option value="{{ name }}">{{ name }}</option>
+            {% endfor %}
+          </select>
+          <label class="checkbox">
+            <input type="checkbox" name="skip_research">
+            <span>Skip external research</span>
+          </label>
+          <button type="submit">Run review</button>
+        </form>
+      </section>
+      {% else %}
+      <section class="sign-in" aria-labelledby="sign-in-heading">
+        <p class="eyebrow">Authentication harness</p>
+        <h2 id="sign-in-heading">Sign in to start a review</h2>
+        <p>Use your workshop Microsoft Entra account.</p>
+        <a class="button" href="{{ url_for('sign_in') }}">Sign in with Microsoft Entra ID</a>
+      </section>
+      {% endif %}
+    </main>
+  </body>
+</html>
