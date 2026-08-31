@@ -70,7 +70,7 @@ az deployment group create \
 	--resource-group "$AZURE_RESOURCE_GROUP" \
 	--template-file 00-setup/main.bicep \
 	--parameters \
-		principalId="$CALLER_OBJECT_ID" \
+		principalIds="[\"$CALLER_OBJECT_ID\"]" \
 		sharepointHostname="<sharepoint-hostname>" \
 		sharepointSitePath="/sites/<workshop-site>"
 ```
@@ -87,7 +87,7 @@ az deployment group create \
 	--resource-group "$AZURE_RESOURCE_GROUP" \
 	--template-file 00-setup/main.bicep \
 	--parameters \
-		principalId="$CALLER_OBJECT_ID" \
+		principalIds="[\"$CALLER_OBJECT_ID\"]" \
 		sharepointHostname="<sharepoint-hostname>" \
 		sharepointSitePath="/sites/<workshop-site>" \
 		sshPublicKey="$(cat ~/.ssh/id_ed25519.pub)" \
@@ -128,7 +128,7 @@ az deployment group create \
 	--resource-group "$AZURE_RESOURCE_GROUP" \
 	--template-file 00-setup/main.bicep \
 	--parameters \
-		principalId="$CALLER_OBJECT_ID" \
+		principalIds="[\"$CALLER_OBJECT_ID\"]" \
 		sharepointHostname="<sharepoint-hostname>" \
 		sharepointSitePath="/sites/<workshop-site>" \
 		existingVirtualNetworkResourceId="$VNET_RESOURCE_ID" \
@@ -283,10 +283,27 @@ az deployment group create \
 	--resource-group "$AZURE_RESOURCE_GROUP" \
 	--template-file 00-setup/main.bicep \
 	--parameters \
-		principalId="$CALLER_OBJECT_ID" \
+		principalIds="[\"$CALLER_OBJECT_ID\"]" \
 		sharepointHostname="<sharepoint-hostname>" \
 		sharepointSitePath="/sites/<workshop-site>"
 ```
+
+For multiple participants, include every user object ID in the JSON array, for
+example `principalIds='["<user-1-object-id>","<user-2-object-id>"]'`. Each
+participant receives the Azure AI Developer role on the Microsoft Foundry
+account. For a larger room, assigning the role to a Microsoft Entra security
+group is cleaner than maintaining a long user list. Pass the security group
+object ID and set its principal type explicitly:
+
+```bash
+--parameters \
+	principalIds="[\"$WORKSHOP_GROUP_OBJECT_ID\"]" \
+	principalType=Group
+```
+
+All entries in `principalIds` must have the same type selected by
+`principalType`. Use the default `User` for participant user IDs or
+`ServicePrincipal` for managed identity object IDs.
 
 If the default model version is unavailable in the selected region, also pass
 `modelName`, `modelVersion`, `modelSkuName`, and optionally `modelCapacity` to

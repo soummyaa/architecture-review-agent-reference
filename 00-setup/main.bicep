@@ -3,8 +3,16 @@ targetScope = 'resourceGroup'
 @description('Azure region for all resources.')
 param location string = resourceGroup().location
 
-@description('Object ID of the user or managed identity that runs the workshop.')
-param principalId string
+@description('Object IDs of the users, groups, or managed identities that run the workshop.')
+param principalIds array
+
+@description('Microsoft Entra principal type for every object in principalIds.')
+@allowed([
+  'User'
+  'Group'
+  'ServicePrincipal'
+])
+param principalType string = 'User'
 
 @description('Short prefix used to create globally unique resource names.')
 @minLength(2)
@@ -317,17 +325,18 @@ resource jumpBox 'Microsoft.Compute/virtualMachines@2024-07-01' = if (deployMana
   }
 }
 
-resource foundryRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource foundryRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for principalId in principalIds: {
   name: guid(foundry.id, principalId, azureAiDeveloperRoleId)
   scope: foundry
   properties: {
     principalId: principalId
+    principalType: principalType
     roleDefinitionId: azureAiDeveloperRoleId
   }
   dependsOn: [
     foundryProvisioning
   ]
-}
+}]
 
 output foundryProjectEndpoint string = 'https://${foundryProvisioning.outputs.foundryName}.services.ai.azure.com/api/projects/${foundryProvisioning.outputs.projectName}'
 output foundryResourceId string = foundry.id
