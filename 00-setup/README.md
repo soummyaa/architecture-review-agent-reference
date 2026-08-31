@@ -298,8 +298,12 @@ Run the validator directly. It reads the deployment outputs using
 python 00-setup/validate.py
 ```
 
-The validator prints one `[PASS]` or `[FAIL]` line per dependency, followed by
-a summary. It exits with status `1` if any check fails.
+The validator treats Microsoft Foundry project access and model invocation as
+the two required checks. It prints `[PASS]` or `[FAIL]` for those checks and
+exits with status `1` if either fails. SharePoint access is reported separately
+as `[PASS]` or `[WARN]`; missing Microsoft Graph tenant consent does not block
+Modules 01 through 07. SharePoint-dependent input or publishing still requires
+that warning to be resolved.
 
 ## What you should understand by the end
 

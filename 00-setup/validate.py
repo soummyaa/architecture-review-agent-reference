@@ -274,14 +274,19 @@ def check_sharepoint_site(
     return "Microsoft Graph returned the SharePoint site"
 
 
-def run_check(name: str, check: Callable[[], str]) -> CheckResult:
+def run_check(
+    name: str,
+    check: Callable[[], str],
+    *,
+    failure_status: str = "FAIL",
+) -> CheckResult:
     try:
         detail = check()
         result = CheckResult(name=name, passed=True, detail=detail)
     except Exception as error:
         result = CheckResult(name=name, passed=False, detail=str(error))
 
-    status = "PASS" if result.passed else "FAIL"
+    status = "PASS" if result.passed else failure_status
     print(f"[{status}] {result.name}: {result.detail}", flush=True)
     return result
 
@@ -298,7 +303,6 @@ def main() -> int:
     try:
         cognitive_token = credential.get_token(COGNITIVE_SERVICES_SCOPE).token
         foundry_token = credential.get_token(AI_FOUNDRY_SCOPE).token
-        graph_token = credential.get_token(GRAPH_SCOPE).token
     except Exception:
         print(
             "Authentication failed. Run `az login`, then run this command again.",
@@ -308,9 +312,8 @@ def main() -> int:
 
     cognitive_authorization = f"Bearer {cognitive_token}"
     foundry_authorization = f"Bearer {foundry_token}"
-    graph_authorization = f"Bearer {graph_token}"
     with requests.Session() as session:
-        results = [
+        required_results = [
             run_check(
                 "Microsoft Foundry project",
                 lambda: check_foundry_project(
@@ -326,20 +329,26 @@ def main() -> int:
                     config.model_deployment,
                 ),
             ),
-            run_check(
-                "SharePoint via Microsoft Graph",
-                lambda: check_sharepoint_site(
-                    session,
-                    graph_authorization,
-                    config.sharepoint_hostname,
-                    config.sharepoint_site_path,
-                ),
-            ),
         ]
+        sharepoint_result = run_check(
+            "SharePoint via Microsoft Graph",
+            lambda: check_sharepoint_site(
+                session,
+                f"Bearer {credential.get_token(GRAPH_SCOPE).token}",
+                config.sharepoint_hostname,
+                config.sharepoint_site_path,
+            ),
+            failure_status="WARN",
+        )
 
-    passed = sum(result.passed for result in results)
-    print(f"\nSummary: {passed}/{len(results)} checks passed.", flush=True)
-    return 0 if passed == len(results) else 1
+    required_passed = sum(result.passed for result in required_results)
+    sharepoint_status = "passed" if sharepoint_result.passed else "warning"
+    print(
+        f"\nSummary: {required_passed}/{len(required_results)} required checks "
+        f"passed; SharePoint check: {sharepoint_status}.",
+        flush=True,
+    )
+    return 0 if required_passed == len(required_results) else 1
 
 
 if __name__ == "__main__":
