@@ -49,6 +49,9 @@ param existingPrivateEndpointSubnetResourceId string = ''
 @description('Create and link private DNS zones. Set to false when private DNS is managed centrally.')
 param createPrivateDnsZones bool = true
 
+@description('Resource IDs of existing private DNS zones to register with the Foundry private endpoint.')
+param existingPrivateDnsZoneResourceIds array = []
+
 @description('Deploy a Linux jump box reachable through Azure Bastion or an existing network path.')
 param deployJumpBox bool = false
 
@@ -164,6 +167,7 @@ module privateNetworking 'private-networking.bicep' = if (enablePrivateNetworkin
     virtualNetworkResourceId: virtualNetworkResourceId
     privateEndpointSubnetResourceId: privateEndpointSubnetResourceId
     createPrivateDnsZones: createPrivateDnsZones
+    existingPrivateDnsZoneResourceIds: existingPrivateDnsZoneResourceIds
     foundryName: foundryProvisioning.outputs.foundryName
     foundryResourceId: foundryProvisioning.outputs.foundryResourceId
   }

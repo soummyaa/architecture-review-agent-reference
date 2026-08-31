@@ -12,6 +12,9 @@ param privateEndpointSubnetResourceId string
 @description('Create and link private DNS zones.')
 param createPrivateDnsZones bool = true
 
+@description('Resource IDs of existing private DNS zones to register with the Foundry private endpoint.')
+param existingPrivateDnsZoneResourceIds array = []
+
 @description('Name of the Microsoft Foundry account.')
 param foundryName string
 
@@ -90,11 +93,17 @@ resource foundryPrivateEndpoint 'Microsoft.Network/privateEndpoints@2024-05-01' 
   }
 }
 
-resource foundryPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (createPrivateDnsZones) {
-  parent: foundryPrivateEndpoint
-  name: 'default'
-  properties: {
-    privateDnsZoneConfigs: [
+var useExistingPrivateDnsZones = !empty(existingPrivateDnsZoneResourceIds)
+var existingPrivateDnsZoneConfigs = [
+  for (privateDnsZoneResourceId, index) in existingPrivateDnsZoneResourceIds: {
+    name: 'existing-${index}'
+    properties: {
+      privateDnsZoneId: privateDnsZoneResourceId
+    }
+  }
+]
+var createdPrivateDnsZoneConfigs = createPrivateDnsZones
+  ? [
       {
         name: 'cognitiveservices'
         properties: {
@@ -114,5 +123,18 @@ resource foundryPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateD
         }
       }
     ]
+  : []
+var privateDnsZoneConfigs = useExistingPrivateDnsZones
+  ? existingPrivateDnsZoneConfigs
+  : createdPrivateDnsZoneConfigs
+var createPrivateDnsZoneGroup = useExistingPrivateDnsZones || createPrivateDnsZones
+
+// When zones are neither created nor supplied, the zone group is intentionally
+// omitted and central DNS automation must register the private endpoint records.
+resource foundryPrivateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (createPrivateDnsZoneGroup) {
+  parent: foundryPrivateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: privateDnsZoneConfigs
   }
 }
