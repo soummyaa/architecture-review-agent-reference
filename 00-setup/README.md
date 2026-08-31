@@ -12,9 +12,9 @@ workshop SharePoint site through Microsoft Graph.
 - An Azure subscription and permission to create resources and role assignments.
 - Tenant-admin-approved Microsoft Graph access to the workshop SharePoint site.
 - A model and model version available in the target Azure region. The template
-	defaults to `gpt-5.4-mini` version `2026-03-17`. In `centralus`, this model
-	offers `GlobalStandard`, `DataZoneStandard`, `DataZoneProvisionedManaged`,
-	`GlobalProvisionedManaged`, `GlobalBatch`, and `DataZoneBatch` deployment SKUs.
+	defaults to `gpt-5.6-luna` version `2026-07-09`. In `centralus`, this model
+	offers `GlobalStandard`, `DataZoneStandard`, `GlobalProvisionedManaged`, and
+	`DataZoneProvisionedManaged` deployment SKUs.
 
 The devcontainer installs Azure CLI, Bicep, Python, and the packages in
 `requirements.txt` globally. Do not create or activate a virtual environment.

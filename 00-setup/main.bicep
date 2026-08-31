@@ -15,10 +15,10 @@ param namePrefix string = 'archreview'
 param projectName string = 'architecture-review'
 
 @description('Model name from the Microsoft Foundry model catalog.')
-param modelName string = 'gpt-5.4-mini'
+param modelName string = 'gpt-5.6-luna'
 
 @description('Model version available in the selected region.')
-param modelVersion string = '2026-03-17'
+param modelVersion string = '2026-07-09'
 
 // DataZoneStandard keeps inference within the data zone; GlobalStandard routes globally, which regulated customers may not permit.
 @description('SKU used for the model deployment.')
