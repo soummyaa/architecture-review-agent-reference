@@ -11,14 +11,18 @@ SUBMISSIONS_DIRECTORY = REPOSITORY_ROOT / "data" / "synthetic" / "submissions"
 
 class IntakeParsingTests(unittest.TestCase):
     def test_parses_all_existing_synthetic_submissions(self) -> None:
+        submission_paths = sorted(SUBMISSIONS_DIRECTORY.glob("SUB-*.md"))
         submissions = [
             parse_submission(path.read_text(encoding="utf-8"))
-            for path in sorted(SUBMISSIONS_DIRECTORY.glob("SUB-*.md"))
+            for path in submission_paths
+        ]
+        expected_submission_ids = [
+            "-".join(path.stem.split("-")[:2]) for path in submission_paths
         ]
 
         self.assertEqual(
             [submission.submission_id for submission in submissions],
-            ["SUB-001", "SUB-002", "SUB-003"],
+            expected_submission_ids,
         )
         self.assertIsNotNone(submissions[0].commercials)
         self.assertIsNotNone(submissions[1].support_model)
