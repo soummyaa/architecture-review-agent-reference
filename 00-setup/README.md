@@ -138,10 +138,68 @@ private DNS already provides the required zones and virtual network links:
 - `privatelink.services.ai.azure.com`
 - `privatelink.openai.azure.com`
 
-With DNS creation disabled, the template does not create private DNS zones,
-virtual network links, or private endpoint DNS zone groups. The landing-zone
-DNS service must create the corresponding records. The optional jump box is
-available only in greenfield mode because no existing jump-box subnet is
+In many enterprise landing zones, a network or platform team owns these zones
+and their DNS records rather than the person running this deployment. DNS
+registration must therefore be coordinated with that team. Choose one of
+these approaches:
+
+1. If the deployment identity can use the central zones, pass their resource
+	IDs to `existingPrivateDnsZoneResourceIds`. The template creates the private
+	DNS zone group and Azure registers the Foundry private endpoint records:
+
+	```bash
+	--parameters \
+		createPrivateDnsZones=false \
+		existingPrivateDnsZoneResourceIds="[$(printf '"%s","%s","%s"' \
+			"$COGNITIVESERVICES_PRIVATE_DNS_ZONE_ID" \
+			"$SERVICES_AI_PRIVATE_DNS_ZONE_ID" \
+			"$OPENAI_PRIVATE_DNS_ZONE_ID")]"
+	```
+
+2. If the deployment identity cannot use the zones, ask the network or
+	platform team that owns them to create the corresponding A records for the
+	Foundry private endpoint.
+
+As a manual fallback, someone who owns the zones and can update the private
+endpoint can create the DNS zone group directly. The first command creates the
+group and registers one zone; the following commands add the other zones:
+
+```bash
+FOUNDRY_NAME=$(az deployment group show \
+	--name architecture-review-setup \
+	--resource-group "$AZURE_RESOURCE_GROUP" \
+	--query properties.outputs.foundryResourceName.value -o tsv)
+
+az network private-endpoint dns-zone-group create \
+	--resource-group "$AZURE_RESOURCE_GROUP" \
+	--endpoint-name "${FOUNDRY_NAME}-pe" \
+	--name default \
+	--private-dns-zone "$COGNITIVESERVICES_PRIVATE_DNS_ZONE_ID" \
+	--zone-name cognitiveservices
+
+az network private-endpoint dns-zone-group add \
+	--resource-group "$AZURE_RESOURCE_GROUP" \
+	--endpoint-name "${FOUNDRY_NAME}-pe" \
+	--name default \
+	--private-dns-zone "$SERVICES_AI_PRIVATE_DNS_ZONE_ID" \
+	--zone-name services
+
+az network private-endpoint dns-zone-group add \
+	--resource-group "$AZURE_RESOURCE_GROUP" \
+	--endpoint-name "${FOUNDRY_NAME}-pe" \
+	--name default \
+	--private-dns-zone "$OPENAI_PRIVATE_DNS_ZONE_ID" \
+	--zone-name openai
+```
+
+Until the private endpoint is registered and its records are resolvable from
+the deployment network, `00-setup/validate.py` fails its Foundry and model
+deployment checks with a name resolution error.
+
+With DNS creation disabled, the template does not create private DNS zones or
+virtual network links. When no existing zone IDs are supplied, it also
+intentionally skips the private endpoint DNS zone group. The optional jump box
+is available only in greenfield mode because no existing jump-box subnet is
 accepted by this template.
 
 For quick local development, pass `enablePrivateNetworking=false`. This keeps
