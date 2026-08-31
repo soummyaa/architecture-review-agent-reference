@@ -216,6 +216,31 @@ require all telemetry to remain on the private network, need an Azure Monitor
 Private Link Scope with private endpoints and private DNS. This repository does
 not provision those resources.
 
+## Troubleshooting
+
+### Redeployment fails after deleting the resource group
+
+Deleting the workshop resource group does not immediately purge the Cognitive
+Services account behind the Microsoft Foundry project. Azure soft-deletes the
+account at the subscription and region level. Redeploying the same account name
+in the same region can then fail with `FlagMustBeSetForRestore` or
+`CustomDomainInUse`.
+
+When intentionally starting over, run the following command after deleting the
+resource group and before redeploying. Use the deleted account's original name,
+resource group, and Azure region:
+
+```bash
+az cognitiveservices account purge \
+	--location "$AZURE_LOCATION" \
+	--resource-group "$AZURE_RESOURCE_GROUP" \
+	--name "$FOUNDRY_NAME"
+```
+
+Purging is irreversible. Run it only when the previous account is no longer
+needed and a clean redeployment is intended. Record the account name and region
+before deleting the resource group so they are available for this command.
+
 ## Run Standalone
 
 Sign in, create the workshop resource group, and deploy the resources. Replace
