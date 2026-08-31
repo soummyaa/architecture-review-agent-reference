@@ -241,6 +241,24 @@ Purging is irreversible. Run it only when the previous account is no longer
 needed and a clean redeployment is intended. Record the account name and region
 before deleting the resource group so they are available for this command.
 
+### Known issue: Azure Bastion CLI API versions
+
+The optional jump box and Azure Bastion path can be blocked by an upstream
+Azure CLI limitation. The `bastion` CLI extension hardcodes an API version for
+`bastionHosts` that some tenants' ARM endpoints reject. Core Azure CLI can
+similarly request an unsupported API version for `virtualMachines`. Both cases
+surface as `InvalidApiVersionParameter` and can prevent Bastion SSH connections
+entirely.
+
+This behavior is not caused by this repository, and there is no repository-side
+fix. An upstream Azure CLI or extension update is required. In some
+environments, `az network bastion tunnel` may work as an alternate connection
+path.
+
+For workshop environments, the more reliable option is the landing-zone
+deployment path using an existing virtual network with VPN or peered
+connectivity rather than the optional jump box and Bastion path.
+
 ## Run Standalone
 
 Sign in, create the workshop resource group, and deploy the resources. Replace
