@@ -15,13 +15,13 @@ including SharePoint document reads. Delegated downstream access is a roadmap
 item.
 
 The harness does not reimplement agent logic. It invokes the existing
-`06-review-eval/run.py` entry point and displays its reviewed ADR result.
+`05-review-eval/run.py` entry point and displays its reviewed ADR result.
 
 ## Prerequisites
 
 - Complete Module 00 and set `AZURE_RESOURCE_GROUP` to the resource group
   containing the `architecture-review-setup` deployment.
-- Install the requirements for Module 06 and this module.
+- Install the requirements for Module 05 and this module.
 - Register a Microsoft Entra application as described below.
 - Use only the synthetic submissions in `data/synthetic/submissions/`.
 
@@ -63,12 +63,12 @@ credentials. Do not create a client secret.
 From the repository root:
 
 ```bash
-python -m pip install -r 06-review-eval/requirements.txt
+python -m pip install -r 05-review-eval/requirements.txt
 python -m pip install -r 07-auth-harness/requirements.txt
 ```
 
 Each numbered module remains independently installable; this harness includes
-the Module 06 runtime dependencies because it invokes that module's existing
+the Module 05 runtime dependencies because it invokes that module's existing
 entry point.
 
 ## Configure
@@ -103,7 +103,7 @@ python 07-auth-harness/run.py
 ```
 
 Open `http://localhost:5000`, sign in, select a synthetic submission, and run
-the review. Research is enabled by default and uses the existing Module 06
+the review. Research is enabled by default and uses the existing Module 05
 configuration. Select **Skip research** when the Foundry web-search connection
 or approved source allowlist is not configured.
 
@@ -151,7 +151,7 @@ PYTHONPATH=07-auth-harness python -m unittest discover \
   -p "test_*.py"
 ```
 
-Tests mock MSAL and the Module 06 process; they do not require an Entra tenant or
+Tests mock MSAL and the Module 05 process; they do not require an Entra tenant or
 run agents.
 
 ## Troubleshooting

@@ -43,8 +43,8 @@ the detailed agent flow and design decisions. Service glyphs come from the
 | `02-intake` | Structured extraction from an unstructured submission into a typed schema | Reference |
 | `03-orchestration` | Standards and ADR author agents wired behind an explicit orchestrator | Live build |
 | `04-research` | External research restricted to a domain allowlist, every claim cited | Live build |
-| `05-adr-generation` | ADR author output rendered locally as a DOCX; optional SharePoint write-back | Demonstration |
-| `06-review-eval` | Reviewer agent over the draft, plus an evaluation harness | Live build |
+| `05-review-eval` | Reviewer agent over the draft, plus an evaluation harness | Live build |
+| `06-adr-generation` | ADR author output rendered locally as a DOCX; optional SharePoint write-back | Demonstration |
 
 ## Getting started
 

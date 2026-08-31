@@ -76,7 +76,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        help="Output DOCX path (default: 05-adr-generation/output/<submission>-adr.docx).",
+        help="Output DOCX path (default: 06-adr-generation/output/<submission>-adr.docx).",
     )
     parser.add_argument(
         "--upload-to-sharepoint",

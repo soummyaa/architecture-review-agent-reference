@@ -1,4 +1,4 @@
-# 06 — Review and Evaluation
+# 05 — Review and Evaluation
 
 ## Goal
 Build a reviewer agent that checks the draft ADR against the source findings
@@ -18,18 +18,18 @@ From the repository root, run the complete four-agent chain and capture its
 structured output:
 
 ```bash
-python -m pip install -r 06-review-eval/requirements.txt
+python -m pip install -r 05-review-eval/requirements.txt
 export AZURE_RESOURCE_GROUP=<your-resource-group>
-python 06-review-eval/run.py \
+python 05-review-eval/run.py \
   data/synthetic/submissions/SUB-001-northwind-analytics-cloud.md \
   > reviewed-adr.json
 ```
 
 The output contains the standards report, author draft, reviewer flags, and
-reviewed ADR. Render only the reviewed ADR with Module 05:
+reviewed ADR. Render only the reviewed ADR with Module 06:
 
 ```bash
-python 05-adr-generation/run.py reviewed-adr.json
+python 06-adr-generation/run.py reviewed-adr.json
 ```
 
 For a portal walkthrough, add `--keep-agent` before the submission path. The
@@ -39,7 +39,7 @@ names and versions are printed to standard error, so redirected JSON remains
 valid:
 
 ```bash
-python 06-review-eval/run.py --keep-agent \
+python 05-review-eval/run.py --keep-agent \
   data/synthetic/submissions/SUB-001-northwind-analytics-cloud.md \
   > reviewed-adr.json
 ```
@@ -68,7 +68,7 @@ The orchestrator is deliberately linear:
 Run the live decision regression after changing agent instructions:
 
 ```bash
-python 06-review-eval/decision_regression.py
+python 05-review-eval/decision_regression.py
 ```
 
 The command runs all three synthetic submissions through the standards,
@@ -89,7 +89,7 @@ The separate quality-scoring harness also runs the full chain for the three
 synthetic submissions:
 
 ```bash
-python 06-review-eval/evaluate.py
+python 05-review-eval/evaluate.py
 ```
 
 Each case receives one point for a valid reviewed ADR, one for no unsupported

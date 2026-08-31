@@ -59,7 +59,7 @@ python 03-orchestration/run.py \
 ```
 
 The command writes structured ADR content as JSON to standard output. Document
-formatting is intentionally deferred to Module 05. Validation summaries and
+formatting is intentionally deferred to Module 06. Validation summaries and
 elapsed times for both agent calls and the total orchestration are written to
 standard error.
 

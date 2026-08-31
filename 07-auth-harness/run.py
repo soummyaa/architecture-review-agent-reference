@@ -21,7 +21,7 @@ from auth import EntraAuth
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 SUBMISSIONS_DIRECTORY = REPOSITORY_ROOT / "data" / "synthetic" / "submissions"
-REVIEW_ENTRY_POINT = REPOSITORY_ROOT / "06-review-eval" / "run.py"
+REVIEW_ENTRY_POINT = REPOSITORY_ROOT / "05-review-eval" / "run.py"
 DEFAULT_RUN_LOG = Path(__file__).resolve().parent / "output" / "auth-runs.jsonl"
 
 

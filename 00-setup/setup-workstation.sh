@@ -42,8 +42,8 @@ fi
 	-r "$REPO_ROOT/02-intake/requirements.txt" \
 	-r "$REPO_ROOT/03-orchestration/requirements.txt" \
 	-r "$REPO_ROOT/04-research/requirements.txt" \
-	-r "$REPO_ROOT/05-adr-generation/requirements.txt" \
-	-r "$REPO_ROOT/06-review-eval/requirements.txt"
+	-r "$REPO_ROOT/05-review-eval/requirements.txt" \
+	-r "$REPO_ROOT/06-adr-generation/requirements.txt"
 
 echo "Workstation setup complete. Activate the environment with:"
 echo "  source $VENV_DIR/bin/activate"

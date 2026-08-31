@@ -22,7 +22,7 @@ Architecture Decision Record as a Word document.
 ## Structure
 Each numbered folder is a workshop module that must run standalone.
 00-setup, 01-standards-agent, 02-intake, 03-orchestration,
-04-research, 05-adr-generation, 06-review-eval.
+04-research, 05-review-eval, 06-adr-generation.
 
 ## Style
 Optimize for readability over cleverness. Workshop participants will
