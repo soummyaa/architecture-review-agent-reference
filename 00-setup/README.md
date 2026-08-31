@@ -16,12 +16,19 @@ workshop SharePoint site through Microsoft Graph.
 	offers `GlobalStandard`, `DataZoneStandard`, `GlobalProvisionedManaged`, and
 	`DataZoneProvisionedManaged` deployment SKUs.
 
-The devcontainer installs Azure CLI, Bicep, Python, and the packages in
-`requirements.txt` globally. Do not create or activate a virtual environment.
+## Choose your development environment
 
-## Private workstation setup
+### Devcontainer or Codespace
 
-The machine used from inside the private network, including a jump box, needs:
+If this repository is open in its devcontainer or in a Codespace, the container
+setup installs Azure CLI, Bicep, Python, and all module dependencies globally
+inside the container. Do not run `setup-workstation.sh`, and do not create or
+activate `.venv`. Continue to [Networking modes](#networking-modes).
+
+### Standalone Ubuntu workstation or jump box
+
+If this repository is running directly on an Ubuntu workstation or jump box,
+use the setup script and virtual environment described here. The machine needs:
 
 - Azure CLI. For command-line Bastion connections, install the `bastion` and
 	`ssh` Azure CLI extensions.
@@ -32,9 +39,8 @@ The machine used from inside the private network, including a jump box, needs:
 	operating system's managed Python packages.
 - The requirements from every numbered module, not only `00-setup`.
 
-On a fresh Ubuntu machine, clone this repository and run the setup script from
-any directory. It is safe to re-run and installs all module requirements in
-one pip command:
+Clone this repository and run the setup script from any directory. It is safe
+to re-run and installs all module requirements in one pip command:
 
 ```bash
 ./00-setup/setup-workstation.sh
@@ -42,7 +48,8 @@ source .venv/bin/activate
 ```
 
 The script uses `sudo` to install operating-system packages and Azure CLI. It
-creates `.venv` at the repository root.
+creates `.venv` at the repository root. Activate `.venv` in each new shell when
+using this standalone-workstation path.
 
 ## Networking modes
 

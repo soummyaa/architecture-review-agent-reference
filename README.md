@@ -48,6 +48,21 @@ the detailed agent flow and design decisions. Service glyphs come from the
 
 ## Getting started
 
+Choose the instructions for the environment where you opened the repository.
+
+### Devcontainer or Codespace
+
+The devcontainer setup installs Azure CLI, Bicep, Python, and all module
+dependencies globally inside the container. Do not run `setup-workstation.sh`,
+and do not create or activate `.venv`.
+
+A Codespace can run the workshop only when `enablePrivateNetworking=false`.
+With private networking enabled (the default), a Codespace has no route to the
+private endpoint, so use a standalone workstation connected through VPN or
+peering, or a jump box connected to the private network.
+
+### Standalone Ubuntu workstation or jump box
+
 On a fresh Ubuntu workstation that can reach the workshop's private endpoint,
 clone the repository and run:
 
@@ -58,14 +73,13 @@ source .venv/bin/activate
 
 [`00-setup/setup-workstation.sh`](00-setup/setup-workstation.sh) installs the
 operating-system packages, Azure CLI and extensions, Python environment, and
-dependencies required by every module. Then follow
-[`00-setup/README.md`](00-setup/README.md). Nothing else will work until its
-validator reports 3/3.
+dependencies required by every module. It creates `.venv` at the repository
+root; activate that environment in each new shell.
 
-A Codespace can run the workshop only when `enablePrivateNetworking=false`.
-With private networking enabled (the default), a Codespace has no route to the
-private endpoint, so use a workstation or jump box connected to the private
-network.
+After completing the instructions for your environment, follow
+[`00-setup/README.md`](00-setup/README.md). Continue when its two required
+Microsoft Foundry checks pass. The advisory SharePoint check can remain a
+warning unless the workshop flow uses SharePoint input or publishing.
 
 Two things that are easy to miss and cost the most time:
 
