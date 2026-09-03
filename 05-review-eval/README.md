@@ -14,8 +14,8 @@ reference code for participants to read and pull; it is not built live.
 - Python dependencies installed from this module's `requirements.txt`
 
 ## Run
-From the repository root, run the complete four-agent chain and capture its
-structured output:
+From the repository root, run the complete four-agent chain, which includes
+research by default, and capture its structured output:
 
 ```bash
 python -m pip install -r 05-review-eval/requirements.txt
@@ -32,11 +32,11 @@ reviewed ADR. Render only the reviewed ADR with Module 06:
 python 06-adr-generation/run.py reviewed-adr.json
 ```
 
-For a portal walkthrough, add `--keep-agent` before the submission path. The
-standards, research, ADR author, and reviewer agents are then retained with their
-conversations and runs for inspection in the Microsoft Foundry portal. Their
-names and versions are printed to standard error, so redirected JSON remains
-valid:
+For a portal walkthrough, add `--keep-agent` before the submission path. By
+default, the standards, research, ADR author, and reviewer agent versions and
+their conversations are then retained for inspection in the Microsoft Foundry
+portal. Their names and versions are printed to standard error, so redirected
+JSON remains valid:
 
 ```bash
 python 05-review-eval/run.py --keep-agent \
@@ -46,16 +46,19 @@ python 05-review-eval/run.py --keep-agent \
 
 Without the flag, the existing cleanup behavior remains in place.
 
-Use `--skip-research` when the web-search connection is not configured. The ADR
-author then receives no research object and determines the decision from the
-standards findings alone.
+Use `--skip-research` when the approved source allowlist is not ready or the
+external lookup is not wanted. The research agent is not invoked, so the ADR
+author receives no research object and determines the decision from the
+standards findings alone. The standards, ADR author, and reviewer agents still
+run in that order.
 
 ## The four-agent chain
 
 The orchestrator is deliberately linear:
 
 1. The standards agent produces a typed `ConformanceReport`.
-2. The research agent adds allowlisted external context.
+2. Unless `--skip-research` is passed, the research agent adds allowlisted
+  external context.
 3. The ADR author consumes both typed inputs and produces a draft.
 4. The reviewer receives the report and draft, flags unsupported claims and omitted
    findings, and returns corrected ADR content for document rendering.
@@ -71,8 +74,9 @@ Run the live decision regression after changing agent instructions:
 python 05-review-eval/decision_regression.py
 ```
 
-The command runs all three synthetic submissions through the standards,
-research, ADR author, and reviewer agents. It verifies these final reviewed decisions:
+The command runs the three configured regression submissions through the
+standards, research, ADR author, and reviewer agents. It verifies these final
+reviewed decisions:
 
 | Submission | Expected decision | Expected conditions |
 |---|---|---|
@@ -85,17 +89,18 @@ The command exits non-zero if any workflow fails or any result differs, making
 it suitable for checking participant-authored instructions and for automated
 regression runs.
 
-The separate quality-scoring harness also runs the full chain for the three
-synthetic submissions:
+The separate quality-scoring harness is currently hard-coded to require a
+directory containing exactly three `SUB-*.md` files:
 
 ```bash
 python 05-review-eval/evaluate.py
 ```
 
-Each case receives one point for a valid reviewed ADR, one for no unsupported
-claims in the author draft, and one for no omitted findings. The harness is
-intentionally small: it loops over three files, runs the orchestrator, and sums
-three Boolean checks per result.
+The repository now contains four submission files, so that command currently
+exits before invoking the orchestrator. Point `--submissions-directory` at a
+directory containing exactly the three intended evaluation cases to run it.
+Each case then receives one point for a valid reviewed ADR, one for no
+unsupported claims in the author draft, and one for no omitted findings.
 
 ## What you should understand by the end
 How a review pass reduces hallucination risk and completes the orchestrated

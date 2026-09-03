@@ -1,5 +1,9 @@
 # Module 04: Research Agent
 
+> **Reference module:** This directory contains a standalone research CLI for
+> participants to read and run. Research in the live orchestrators uses
+> `03-orchestration/research.py` instead.
+
 ## Goal
 Research a submitted technology from external sources, restricted to a
 configurable domain allowlist, with every claim carrying a citation.
@@ -44,5 +48,6 @@ python -m unittest -v test_run.py
 ## What you should understand by the end
 How to constrain external grounding so the output is defensible, and why
 an allowlist is a governance control rather than a technical detail. The
-research agent is built live in this module; its external search capability
-remains optional in the submission-to-reviewed-ADR loop.
+standalone implementation in this module is separate from the live loop.
+Research in the live orchestrators runs by default and can be omitted with
+`--skip-research`.

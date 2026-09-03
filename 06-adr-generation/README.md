@@ -14,7 +14,7 @@ an optional, separate step.
 
 ## Run
 From the repository root, first capture the reviewed output from the
-three-agent chain:
+four-agent Module 05 chain:
 
 ```bash
 python -m pip install -r 06-adr-generation/requirements.txt
@@ -41,9 +41,10 @@ python 06-adr-generation/run.py reviewed-adr.json \
   --sharepoint-site-path /sites/<workshop-site>
 ```
 
-The signed-in identity needs Graph write access to the target site. If Graph
-returns HTTP 403, the command reports the missing write permission clearly and
-leaves the successfully rendered local DOCX in place.
+The identity selected by `DefaultAzureCredential` needs Graph write access to
+the target site. If Graph returns HTTP 403, the command reports the missing
+write permission clearly and leaves the successfully rendered local DOCX in
+place.
 
 ## Customize the template
 

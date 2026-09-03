@@ -10,13 +10,13 @@
 
 The fourth status matters. A submission that simply does not address a requirement is different from one that violates it, and collapsing those two is the fastest way to lose a review board's trust.
 
-**Research agent.** Takes the technology name from the conformance report and searches only customer-approved domains. It returns `TechnologyResearch`, where every external claim has a source title and URL. The domain allowlist is configuration, and every returned URL is validated against it. This step can be skipped while the allowlist or web-search connection is undecided.
+**Research agent.** Takes the technology name from the conformance report and searches only customer-approved domains. It returns `TechnologyResearch`, where every external claim has a source title and URL. The domain allowlist is configuration, and every returned URL is validated against it. This stage runs by default and can be omitted with `--skip-research` while the allowlist is undecided or external research is not wanted.
 
 **ADR author agent.** Takes the conformance report and optional research findings and produces the content of an Architecture Decision Record: title, decision, drivers, conditions, and consequences. The standards library is authoritative. Research may inform context and consequences but never overrides a standards finding.
 
 **Reviewer agent.** Critiques the draft against the findings it came from, before any human sees it. It looks for two failure modes: claims in the draft that the findings do not support, and findings the draft left out. Each is reported with a severity and the indices of the findings it relates to.
 
-In testing, the reviewer caught the author treating `not_evidenced` findings as outright non-conformances. That is exactly the overreach this agent exists to catch.
+The ADR validator treats `not_evidenced` as an evidence gap rather than a material non-conformance, and the reviewer runs the corrected ADR through that same validation before returning it.
 
 ## The data contracts
 
@@ -32,7 +32,7 @@ The handoff between agents is a typed schema, not prose. This is the design deci
 
 ## Reference modules
 
-**Intake (02)** extracts structured fields from an unstructured submission: vendor, capability, data classification, integration points, hosting model. It slots in ahead of the standards agent when submissions arrive in inconsistent formats.
+**Intake (02)** extracts structured fields from an unstructured submission. It is a standalone reference module and is not invoked by either live orchestrator.
 
 ## Design decisions
 
@@ -40,9 +40,9 @@ The handoff between agents is a typed schema, not prose. This is the design deci
 
 **Why the renderer is code, not a model.** Document layout is deterministic work. Models are good at content and unreliable at format fidelity, so the agent produces structured content and Python renders it into the template.
 
-**Why SharePoint upload is optional.** Graph write permission is the most likely thing to be missing in any given tenant. Isolating it means a missing permission costs you the last step rather than the whole run.
+**Why SharePoint upload is optional.** The renderer writes the local DOCX before checking the upload flag. A missing Graph permission therefore fails the publishing step without removing the local document.
 
-**Why research is optional.** The source allowlist is a customer governance decision, and web search requires a separate Foundry project connection. `--skip-research` keeps standards review and ADR authoring available while either dependency is unresolved.
+**Why research can be skipped.** The source allowlist is a customer governance decision. Foundry manages the web-search tool without a separate project connection, and `--skip-research` keeps standards review, ADR authoring, and final review available while the allowlist is unresolved or external research is not wanted.
 
 **Why standards remain authoritative.** External sources describe a technology, but they do not define an enterprise's obligations. Research adds context to the ADR; only the internal standards library determines conformance.
 
@@ -51,11 +51,13 @@ The handoff between agents is a typed schema, not prose. This is the design deci
 ## Observability
 
 When the setup deployment provides an Application Insights connection string,
-the agent modules configure Azure Monitor OpenTelemetry tracing. An end-to-end
-run creates an `Architecture review` trace with a span for each executed stage:
-`Standards agent`, `Research agent`, `ADR author agent`, and `Reviewer agent`.
-The spans record timing, status, errors, and instrumented dependency calls; they
-do not attach submission, standards, research, or ADR content as attributes.
+the agent modules configure Azure Monitor OpenTelemetry tracing. A default
+Module 05 run creates an `Architecture review` trace with spans for `Standards
+agent`, `Research agent`, `ADR author agent`, and `Reviewer agent`.
+`--skip-research` omits the research span. The custom `traced_span` wrapper
+opens named spans but does not add attributes or explicitly attach submission,
+standards, research, or ADR content. `configure_tracing` passes the deployment's
+connection string to `configure_azure_monitor`.
 
 Tracing makes the review path and failures reconstructable without relying on
 console output. That evidence matters when an architecture decision must be

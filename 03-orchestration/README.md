@@ -41,8 +41,8 @@ The config is a JSON object with an `allowed_domains` string array. Values are
 hostnames without a scheme or path. The same domains constrain the Foundry
 web-search tool and validate every returned citation URL.
 
-When the allowlist or search connection has not been approved, keep the rest of
-the chain runnable with `--skip-research`:
+When the allowlist has not been approved, keep the rest of the chain runnable
+with `--skip-research`:
 
 ```bash
 python 03-orchestration/run.py --skip-research \
@@ -60,11 +60,11 @@ python 03-orchestration/run.py \
 
 The command writes structured ADR content as JSON to standard output. Document
 formatting is intentionally deferred to Module 06. Validation summaries and
-elapsed times for both agent calls and the total orchestration are written to
-standard error.
+elapsed times for each executed agent call and the total orchestration are
+written to standard error.
 
-Add `--keep-agent` when participants need to inspect all three agents,
-conversations, and runs in the Microsoft Foundry portal:
+Add `--keep-agent` when participants need to inspect the executed agents and
+their conversations in the Microsoft Foundry portal:
 
 ```bash
 python 03-orchestration/run.py --keep-agent \
@@ -72,7 +72,8 @@ python 03-orchestration/run.py --keep-agent \
 ```
 
 Each retained agent name and version is printed to standard error. Without the
-flag, all temporary resources are cleaned up as before.
+flag, each executed agent version and conversation is deleted; the standards
+stage also deletes its vector store and uploaded files.
 
 ## How the orchestration works
 

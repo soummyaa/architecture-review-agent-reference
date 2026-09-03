@@ -15,12 +15,16 @@ it against the organization's architecture standards, researches the
 technology, writes up where it falls short, and produces an Architecture
 Decision Record.
 
-The live build runs a complete four-agent loop behind an orchestrator:
-the standards agent evaluates the submission, the research agent gathers
-evidence from approved sources, the ADR author agent drafts the decision
-record, and the reviewer agent checks the draft before the reviewed ADR is
-returned. Intake remains in the repository as a reference implementation
-participants can read and pull.
+Module 03 runs a three-agent loop behind an orchestrator: the standards agent
+evaluates the submission, the research agent gathers evidence from approved
+sources, and the ADR author agent drafts the decision record. Module 05 extends
+that loop with a fourth agent, the reviewer, which checks the draft before the
+reviewed ADR is returned. Research runs by default in both orchestrators and
+can be omitted with `--skip-research`. Intake and the evaluation harness remain
+reference implementations participants can read and pull. ADR document
+generation and the Entra ID sign-in harness are facilitator demonstrations;
+the sign-in harness invokes the Module 05 four-agent chain rather than adding
+another agent.
 
 It assists a review board. It does not replace one.
 
@@ -28,11 +32,12 @@ It assists a review board. It does not replace one.
 
 ![Azure architecture for the Architecture Review Agent](docs/azure-architecture.png)
 
-The deployment uses private networking, managed identity, and Microsoft
-Foundry to run the agent workflow. SharePoint input and optional output travel
-through Microsoft Graph. See [`docs/architecture.md`](docs/architecture.md) for
-the detailed agent flow and design decisions. Service glyphs come from the
-[official Azure architecture icon set](https://learn.microsoft.com/azure/architecture/icons/).
+The deployment uses private networking and identity-based authentication
+through `DefaultAzureCredential`, with Microsoft Foundry running the agent
+workflow. SharePoint input and optional output travel through Microsoft Graph.
+See [`docs/architecture.md`](docs/architecture.md) for the detailed agent flow
+and design decisions. Service glyphs come from the [official Azure architecture
+icon set](https://learn.microsoft.com/azure/architecture/icons/).
 
 ## Modules
 
@@ -41,10 +46,11 @@ the detailed agent flow and design decisions. Service glyphs come from the
 | `00-setup` | Foundry project and model deployment, plus a validator that proves access | Live build |
 | `01-standards-agent` | One agent grounded on the standards library, returning findings with section-level citations | Live build |
 | `02-intake` | Structured extraction from an unstructured submission into a typed schema | Reference |
-| `03-orchestration` | Standards and ADR author agents wired behind an explicit orchestrator | Live build |
-| `04-research` | External research restricted to a domain allowlist, every claim cited | Live build |
-| `05-review-eval` | Reviewer agent over the draft, plus an evaluation harness | Live build |
+| `03-orchestration` | Standards, research, and ADR author agents wired behind an explicit orchestrator | Live build |
+| `04-research` | Standalone reference implementation of allowlisted external research | Reference |
+| `05-review-eval` | Reviewer agent over the draft, plus a reference evaluation harness | Live build |
 | `06-adr-generation` | ADR author output rendered locally as a DOCX; optional SharePoint write-back | Demonstration |
+| `07-auth-harness` | Entra ID sign-in harness in front of the agent chain | Demonstration |
 
 ## Getting started
 
@@ -52,9 +58,10 @@ Choose the instructions for the environment where you opened the repository.
 
 ### Devcontainer or Codespace
 
-The devcontainer setup installs Azure CLI, Bicep, Python, and all module
-dependencies globally inside the container. Do not run `setup-workstation.sh`,
-and do not create or activate `.venv`.
+The devcontainer setup installs Azure CLI, Bicep, Python, and the dependencies
+for Modules 00 through 06 globally inside the container. Install
+`07-auth-harness/requirements.txt` separately before running Module 07. Do not
+run `setup-workstation.sh`, and do not create or activate `.venv`.
 
 A Codespace can run the workshop only when `enablePrivateNetworking=false`.
 With private networking enabled (the default), a Codespace has no route to the
@@ -73,8 +80,10 @@ source .venv/bin/activate
 
 [`00-setup/setup-workstation.sh`](00-setup/setup-workstation.sh) installs the
 operating-system packages, Azure CLI and extensions, Python environment, and
-dependencies required by every module. It creates `.venv` at the repository
-root; activate that environment in each new shell.
+dependencies for Modules 00 through 06. Install
+`07-auth-harness/requirements.txt` separately before running Module 07. The
+script creates `.venv` at the repository root; activate that environment in
+each new shell.
 
 After completing the instructions for your environment, follow
 [`00-setup/README.md`](00-setup/README.md). Continue when its two required
@@ -91,9 +100,9 @@ Two things that are easy to miss and cost the most time:
 
 ## Data
 
-Everything in `data/synthetic` is invented. Three architecture standards
-and three technology submissions, written to produce a clear range of
-outcomes:
+Everything in `data/synthetic` is invented. The directory contains three
+architecture standards and four technology submissions. Three submissions
+have explicit expected outcomes in the decision regression:
 
 | Submission | Expected result |
 |---|---|
@@ -107,8 +116,8 @@ is no evidence the system can say yes.
 ## Conventions
 
 - Python and Bicep. No Terraform.
-- Managed identity through `DefaultAzureCredential`. No keys in code or `.env`
-  files.
+- Identity-based authentication through `DefaultAzureCredential`. No keys in
+  code or `.env` files.
 - Each module runs standalone and has its own README.
 - Readability over cleverness. People will read this code and extend it.
 - No customer names, tenant identifiers, or real URLs anywhere in this

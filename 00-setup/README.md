@@ -21,9 +21,11 @@ workshop SharePoint site through Microsoft Graph.
 ### Devcontainer or Codespace
 
 If this repository is open in its devcontainer or in a Codespace, the container
-setup installs Azure CLI, Bicep, Python, and all module dependencies globally
-inside the container. Do not run `setup-workstation.sh`, and do not create or
-activate `.venv`. Continue to [Networking modes](#networking-modes).
+setup installs Azure CLI, Bicep, Python, and the dependencies for Modules 00
+through 06 globally inside the container. Install
+`07-auth-harness/requirements.txt` separately before running Module 07. Do not
+run `setup-workstation.sh`, and do not create or activate `.venv`. Continue to
+[Networking modes](#networking-modes).
 
 ### Standalone Ubuntu workstation or jump box
 
@@ -37,7 +39,8 @@ use the setup script and virtual environment described here. The machine needs:
 - Git.
 - A virtual environment so workshop dependencies remain isolated from the
 	operating system's managed Python packages.
-- The requirements from every numbered module, not only `00-setup`.
+- The requirements for Modules 00 through 06, plus
+	`07-auth-harness/requirements.txt` when running Module 07.
 
 Clone this repository and run the setup script from any directory. It is safe
 to re-run and installs all module requirements in one pip command:

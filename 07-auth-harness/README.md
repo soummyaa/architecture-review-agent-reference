@@ -104,13 +104,15 @@ python 07-auth-harness/run.py
 
 Open `http://localhost:5000`, sign in, select a synthetic submission, and run
 the review. Research is enabled by default and uses the existing Module 05
-configuration. Select **Skip research** when the Foundry web-search connection
-or approved source allowlist is not configured.
+configuration. Select **Skip research** when the approved source allowlist is
+not configured or external research is not wanted.
 
-Submitting the form creates an in-memory run and returns a run ID immediately.
-The browser opens a status page that refreshes while the background thread moves
-through `queued`, `standards`, `research`, `adr_author`, and `reviewer`. It then
-shows the reviewed ADR at `complete`, or the downstream error at `failed`.
+Submitting the form creates an in-memory run and immediately redirects the
+browser to that run's status URL. The page refreshes while the background
+thread moves through `queued`, `standards`, `research`, `adr_author`, and
+`reviewer` by default. With **Skip research**, it moves directly from
+`standards` to `adr_author`. It then shows the reviewed ADR at `complete`, or
+the downstream error at `failed`.
 
 Run state is intentionally held in one process for this single-presenter
 teaching harness. Restarting the app loses status pages for active and completed
