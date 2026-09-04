@@ -194,12 +194,19 @@ class ReviewValidationTests(unittest.TestCase):
 
         self.assertIn("the submitted design stands", author_instructions)
         self.assertIn("the design itself must change", author_instructions)
+        self.assertIn("Vendor-resolvable and contract-resolvable gaps are remediable", author_instructions)
+        self.assertIn("Do not classify that integration change as replacement", author_instructions)
+        self.assertIn("A not_evidenced finding is never structural", author_instructions)
+        self.assertIn("a condition requiring the missing evidence", author_instructions)
         self.assertIn(
             "no unsupported claims and no omitted findings means verdict pass",
             reviewer_instructions,
         )
         self.assertIn("Section 3 applies only to vendor-hosted SaaS", standards_instructions)
         self.assertIn("no finding may cite it for those proposals", standards_instructions)
+        self.assertIn("only when an applicable requirement is genuinely unaddressed", standards_instructions)
+        self.assertIn("A brief direct statement is evidence", standards_instructions)
+        self.assertIn("do not invent additional components", standards_instructions)
         self.assertIn("three availability zones", standards_instructions)
         self.assertIn("schemas registered in a schema registry", standards_instructions)
 

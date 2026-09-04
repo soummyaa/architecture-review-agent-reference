@@ -40,7 +40,9 @@ are within the continental United States.
 Production runs across three availability zones in each region, with
 automated failover between regions. No data is stored or processed outside
 the continental United States, including backups and the disaster recovery
-replica in us-central.
+replica in us-central. The cloud provider contract guarantees regional
+pinning for storage, processing, backups, disaster recovery replicas, and
+support access.
 
 ## Integration approach
 
@@ -52,13 +54,16 @@ databases.
 
 The service exposes a REST API for preference management, published
 through the enterprise API gateway, documented with an OpenAPI 3.1
-specification and versioned in the path as /v1. Event schemas are
-registered in the enterprise schema registry, and consumers are built to
-ignore unrecognized fields.
+specification and versioned in the path as /v1. Breaking changes use a new
+major version, with the prior version supported for at least six months.
+Event schemas are registered in the enterprise schema registry, consumers
+are built to ignore unrecognized fields, and producers do not remove or
+repurpose fields within a major version.
 
-Outbound delivery to the email and SMS vendors uses their REST APIs over
-TLS 1.3, with retry using exponential backoff and a circuit breaker that
-opens after five consecutive failures.
+All integration consumers, including the enterprise event subscription and
+outbound email and SMS vendor API calls, use retry with exponential backoff
+and a circuit breaker that opens after five consecutive failures. Outbound
+vendor API calls use TLS 1.3.
 
 ## Identity and access
 
@@ -69,7 +74,8 @@ the identity provider. There is no local account store.
 Service-to-service authentication uses workload identity issued by the
 cloud platform. The vendor API credentials that cannot use workload
 identity are held in the enterprise secrets manager with ninety-day
-rotation configured.
+rotation configured. Credentials are never committed to source control or
+configuration files.
 
 Authorization is role-based, with three roles mapped to enterprise
 directory groups: member self-service, service desk read, and platform

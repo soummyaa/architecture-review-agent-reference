@@ -246,15 +246,34 @@ For each finding:
 - do not invent facts, standards, exceptions, or citations;
 - use conforms when the submission directly states how it meets the requirement; do not demand a
   redundant artifact or restatement that the standard does not require;
-- use not_evidenced when an applicable requirement is not addressed by the submission;
+- use not_evidenced only when an applicable requirement is genuinely unaddressed by the
+    submission. A brief direct statement is evidence; do not mark it not_evidenced merely because
+    the submission omits extra implementation detail, an artifact, or a repeated statement that the
+    standard does not require;
+- do not invent additional components, integrations, or scenarios and then demand separate evidence
+    for them. Evaluate the proposed scope and evidence as written;
 - omit requirements that do not apply to the proposed technology; do not report an inapplicable
   requirement as not_evidenced;
 - STD-001 Section 3 applies only to vendor-hosted SaaS. Omit it for internally built workloads on
   the managed container platform;
 - for STD-001 Section 4, a statement that production runs across three availability zones in each
   region satisfies the requirement to deploy production across at least two availability zones;
+- for STD-001 Section 2, statements that all storage and processing remain in the continental
+    United States and that the provider contract pins storage, processing, backups, disaster recovery
+    replicas, and support access satisfy the residency requirement;
+- for STD-002 Section 2, statements that workload identity is used where supported and that other
+    credentials are kept in the enterprise secrets manager, rotated every ninety days, and never
+    committed to source control or configuration files satisfy the workload-authentication
+    requirement;
+- for STD-003 Section 2, statements that an authenticated API is published through the enterprise
+    API gateway, versioned in its path, and retains a prior major version for six months after a
+    breaking change satisfy the API requirement;
 - for STD-003 Section 4, schemas registered in a schema registry are documented schemas, and a
-  statement that consumers ignore unrecognized fields satisfies unknown-field tolerance;
+    statement that consumers ignore unrecognized fields satisfies unknown-field tolerance. A
+    statement that producers do not remove or repurpose fields within a major version satisfies the
+    producer-compatibility requirement;
+- for STD-003 Section 5, a statement that all integration consumers use retry with exponential
+    backoff and a circuit breaker satisfies the resilience requirement;
 - provide actionable remediation unless the status is conforms.
 
 Valid citations:
@@ -370,9 +389,25 @@ Apply this decision policy:
 - approved requires every finding to conform and has no conditions.
 - approved_with_conditions requires at least one gap and every gap to be remediable.
 - rejected requires at least one structural gap and has no conditions.
-- A gap is remediable when the submitted design stands and only its configuration, contract, or
-  process changes. A gap is structural when the design itself must change.
-- Changing a configuration setting is remediable; replacing a core design component is structural.
+- A gap is remediable when the submitted design stands because a configuration change, contract
+    term, or process change can resolve it. Anything resolvable by those means becomes a condition.
+- A non-conformance is structural only when the design itself must change because no configuration
+    change, contract term, or process change could resolve it without altering the proposed design.
+- A remedy may be implemented by the submitting team, the vendor, or another accountable party.
+    Vendor-resolvable and contract-resolvable gaps are remediable even when the submitting team
+    cannot implement the change directly.
+- Changing a configuration setting is remediable. Replacing a core design component is structural
+    only when configuration, contract, and process remedies cannot preserve the proposed design.
+- The proposed design includes its explicitly selected hosting model and core architecture.
+    Replacing self-managed infrastructure with a different hosting model is structural. Selecting a
+    supported optional interface or integration mode while retaining the proposed technology and
+    intended use is remediable, even when the submission initially proposes a non-conforming
+    integration method. Do not classify that integration change as replacement of a core component.
+- A process change must resolve the requirement. Merely requesting an exception, accepting the
+    risk, or promising to redesign later does not make a structural non-conformance remediable.
+- A not_evidenced finding means the submission did not establish whether a requirement is met; it
+    is not evidence of a design flaw. A not_evidenced finding is never structural and always becomes
+    a condition requiring the missing evidence.
 - Even one does_not_conform, partially_conforms, or not_evidenced finding means
   approved_with_conditions rather than approved, unless that finding is structural.
 - Conditions apply only to approved_with_conditions. Create one condition for every gap finding
