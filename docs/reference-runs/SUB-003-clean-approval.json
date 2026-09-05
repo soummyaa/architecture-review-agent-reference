@@ -1,0 +1,328 @@
+{
+  "standards_report": {
+    "submission_id": "SUB-003",
+    "technology": "Member Notification Service",
+    "summary": "Internally built containerized notification service on the enterprise managed container platform with managed event streaming, enterprise API gateway, enterprise identity provider, workload identity federation, role-based access, structured logging, TLS 1.3, and data residency in the continental United States.",
+    "findings": [
+      {
+        "status": "conforms",
+        "requirement": "New workloads must use an approved hosting model.",
+        "standard_evidence": "New workloads must use one of the following, in order of preference:",
+        "analysis": "The submission states the workload is an internally built, containerized service on the enterprise managed container platform, which is an approved hosting model.",
+        "submission_evidence": "\"The managed container platform is the approved hosting model selected for this new workload; it does not use self-managed infrastructure or infrastructure-as-a-service.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "1. Approved hosting models",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Internal-classified or above data must be stored and processed within the continental United States, with contractual regional pinning for backups, disaster recovery replicas, and support access.",
+        "standard_evidence": "All data classified Internal or above must be stored and processed within the continental United States. Vendors must be able to contractually guarantee regional pinning, including for backups, disaster recovery replicas, and support access.",
+        "analysis": "The submission explicitly states all data remains within the continental United States and that the cloud provider contract guarantees pinning for storage, processing, backups, disaster recovery replicas, and support access.",
+        "submission_evidence": "\"No data is stored or processed outside the continental United States, including backups and the disaster recovery replica in us-central. The cloud provider contract guarantees regional pinning for storage, processing, backups, disaster recovery replicas, and support access.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "2. Data residency",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "not_applicable",
+        "requirement": "Vendor-hosted SaaS approval conditions apply only to vendor-hosted SaaS products.",
+        "standard_evidence": "A vendor-hosted SaaS product may be approved where all of the following hold:",
+        "analysis": "The submission states this is an internally built, containerized workload and explicitly says the vendor-hosted SaaS conditions do not apply.",
+        "submission_evidence": "\"This is an internally built, containerized workload, not a vendor-hosted software-as-a-service product. The vendor-hosted SaaS conditions in STD-001 Section 3 therefore do not apply.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "3. Vendor-hosted SaaS conditions",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Production workloads must be deployed across at least two availability zones, or have a documented single-zone exception with an RTO.",
+        "standard_evidence": "Production workloads must be deployed across at least two availability zones. Single-zone deployments require a documented exception with a stated recovery time objective.",
+        "analysis": "The submission states production runs across three availability zones in each region and never operates as a single-zone deployment, which exceeds the minimum requirement.",
+        "submission_evidence": "\"Production runs across three availability zones in each region, with automated failover between regions.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "4. Region and availability",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Systems handling Internal-classified data or above must federate to the enterprise identity provider, with no local account store except break-glass.",
+        "standard_evidence": "All systems handling Internal-classified data or above must federate to the enterprise identity provider. Local account stores are not permitted except for a documented break-glass account.",
+        "analysis": "The submission states human authentication uses the enterprise identity provider via OpenID Connect and that there is no local account store or bypass path.",
+        "submission_evidence": "\"The preference management API authenticates end users through the enterprise identity provider using OpenID Connect, with MFA enforced at the identity provider. This applies to every human-accessible endpoint. There is no local account store, break-glass account, or authentication path that bypasses enterprise identity provider MFA.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "1. Human authentication",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Service-to-service authentication must use cloud-platform workload identity; long-lived static credentials are not approved.",
+        "standard_evidence": "Service-to-service authentication must use workload identity issued by the cloud platform. Long-lived static credentials, including API keys and shared secrets, are not approved for new systems.",
+        "analysis": "The submission states cloud-hosted components use workload identity federation issued by the cloud platform and that no static credentials are used for service-to-service paths, including vendor APIs.",
+        "submission_evidence": "\"Service-to-service authentication between cloud-hosted components uses OpenID Connect 1.0 workload identity federation issued by the cloud platform.\" and \"The service uses no API keys, client secrets, shared secrets, or other long-lived credentials for any service-to-service path\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "2. Workload authentication",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Access must be role-based, with role or group abstraction rather than individual-user permissions.",
+        "standard_evidence": "Access must be role-based. Systems that grant permissions only at an individual-user level, with no role or group abstraction, do not meet this standard.",
+        "analysis": "The submission describes role-based authorization with roles mapped to enterprise directory groups and no direct individual-user permissions.",
+        "submission_evidence": "\"Authorization is role-based, with three roles mapped to enterprise directory groups\" and \"There are no permissions assigned directly to individual users\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "3. Authorization model",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Administrative access must be time-bound and requested, not standing.",
+        "standard_evidence": "Administrative access must be time-bound and requested, not standing. Systems that require permanently assigned administrator accounts require a documented exception.",
+        "analysis": "The submission states administrative access is requested through the privileged access workflow and granted for a maximum of eight hours, with no standing administrator assignments.",
+        "submission_evidence": "\"Administrative access is requested through the privileged access workflow and granted for a maximum of eight hours. There are no permissions assigned directly to individual users and no standing administrator assignments.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "4. Privileged access",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "All systems must support a machine-readable export of users and effective permissions for quarterly access reviews.",
+        "standard_evidence": "All systems must support an export of users and their effective permissions, in a machine-readable format, to support quarterly access reviews.",
+        "analysis": "The submission states the service exposes an endpoint returning all users and their effective permissions in JSON for quarterly access review, which satisfies the export requirement.",
+        "submission_evidence": "\"The service exposes an endpoint that returns all users and their effective permissions in JSON for quarterly access review.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "5. Access review",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "New integrations must use an approved integration pattern.",
+        "standard_evidence": "New integrations must use one of:",
+        "analysis": "The submission uses asynchronous messaging via the enterprise event platform and synchronous REST APIs documented with OpenAPI through the enterprise API gateway, both approved patterns.",
+        "submission_evidence": "\"Source applications publish claim and benefit events to the enterprise event platform.\" and \"The service exposes a REST API for preference management, published through the enterprise API gateway, documented with an OpenAPI 3.1 specification\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "1. Approved integration patterns",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Externally reachable APIs must be published through the enterprise API gateway, versioned in the path, and retain the prior major version for at least six months after breaking changes.",
+        "standard_evidence": "Externally reachable APIs must be published through the enterprise API gateway. APIs must be versioned in the path, and breaking changes require a new major version with the prior version supported for at least six months.",
+        "analysis": "The submission states the REST API is published through the enterprise API gateway, versioned in the path as /v1, and that breaking changes use a new major version with prior version support for at least six months.",
+        "submission_evidence": "\"The service exposes a REST API for preference management, published through the enterprise API gateway, documented with an OpenAPI 3.1 specification and versioned in the path as /v1. Breaking changes use a new major version, with the prior version supported for at least six months.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "2. API requirements",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "All data in transit must use TLS 1.2 or higher, and data at rest must be encrypted with approved keys.",
+        "standard_evidence": "All data in transit must use TLS 1.2 or higher. Data at rest must be encrypted using platform-managed or customer-managed keys. Systems that cannot encrypt at rest are limited to Public-classified data.",
+        "analysis": "The submission states all transport uses TLS 1.3 and data at rest uses customer-managed keys, including event data, preference data, delivery history, backups, and replicas.",
+        "submission_evidence": "\"Data at rest uses customer-managed keys held in the enterprise key management service\" and \"All transport uses TLS 1.3\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "3. Transport and encryption",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Every integration must have a documented schema; consumers must tolerate unknown fields; producers must not remove or repurpose fields within a major version.",
+        "standard_evidence": "Every integration must have a documented schema. Consumers must tolerate the addition of unknown fields. Producers must not remove or repurpose fields within a major version.",
+        "analysis": "The submission states schemas are registered in the schema registry, consumers ignore unrecognized fields, and producers do not remove or repurpose fields within a major version.",
+        "submission_evidence": "\"Event schemas are registered in the enterprise schema registry, consumers are built to ignore unrecognized fields, and producers do not remove or repurpose fields within a major version.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "4. Data contracts",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Consumers must implement retry with exponential backoff and a circuit breaker.",
+        "standard_evidence": "Consumers must implement retry with exponential backoff and a circuit breaker. Integrations that retry indefinitely without backoff do not meet this standard.",
+        "analysis": "The submission explicitly states all integration consumers use retry with exponential backoff and a circuit breaker.",
+        "submission_evidence": "\"All integration consumers, including the enterprise event subscription and outbound email and SMS vendor API calls, use retry with exponential backoff and a circuit breaker\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "5. Rate limiting and resilience",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Integration points must emit structured logs to the enterprise logging platform with a propagated correlation identifier and no Internal-or-above payload data.",
+        "standard_evidence": "Integration points must emit structured logs to the enterprise logging platform, including a correlation identifier propagated across service boundaries. Logs must not contain payload data classified Internal or above.",
+        "analysis": "The submission states each integration point emits structured logs to the enterprise logging platform, propagates the originating event's correlation identifier, and excludes member identifiers, claim references, and message body content.",
+        "submission_evidence": "\"Each integration point emits structured logs to the enterprise logging platform and propagates the originating event's correlation identifier across every service boundary. Integration logs exclude member identifiers, claim references, and message body content.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "6. Logging",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      }
+    ]
+  },
+  "draft_adr": {
+    "submission_id": "SUB-003",
+    "technology": "Member Notification Service",
+    "title": "Approval of Member Notification Service on Enterprise Managed Container Platform",
+    "status": "proposed",
+    "decision": "approved",
+    "context": "The submission describes an internally built, containerized member notification service deployed on the enterprise managed container platform. It uses managed event streaming, the enterprise API gateway, the enterprise identity provider, workload identity federation, role-based access, structured logging, TLS 1.3, and data residency in the continental United States. External research was not available and did not contribute additional evidence.",
+    "standards_assessment": "All reported findings conform to the applicable standards. The workload uses an approved hosting model and remains within the continental United States with contractual regional pinning. Identity, authorization, privileged access, access review, integration patterns, API publication, encryption, data contracts, resilience, and logging all meet the cited requirements. No gaps, partial conformances, or missing evidence were reported.",
+    "decision_statement": "Approve the Member Notification Service as submitted.",
+    "decision_drivers": [
+      "Approved hosting model selected for the new workload.",
+      "Data residency and contractual regional pinning are satisfied.",
+      "Enterprise identity provider federation and role-based access are in place.",
+      "Approved integration patterns, API gateway publication, and versioning are used.",
+      "Transport encryption, at-rest encryption, resilience, and structured logging conform to standards."
+    ],
+    "conditions": [],
+    "positive_consequences": [
+      "The service may proceed without additional remediation conditions.",
+      "The approved design aligns with enterprise hosting, identity, integration, and logging standards.",
+      "Operational controls for access review, versioning, and resilience are already embedded in the design."
+    ],
+    "negative_consequences": [
+      "Approval does not remove the need to maintain the stated controls over time.",
+      "Future changes to hosting, residency, identity, integration, or encryption could require renewed conformance review."
+    ]
+  },
+  "review": {
+    "submission_id": "SUB-003",
+    "verdict": "revised",
+    "unsupported_claims": [
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "context",
+        "description": "The statement that external research was not available and did not contribute additional evidence is not supported by any finding in the standards report.",
+        "finding_indices": []
+      },
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "standards_assessment",
+        "description": "The claim that no gaps, partial conformances, or missing evidence were reported is broader than the report, which includes one not_applicable finding and does not explicitly assess gaps or missing evidence.",
+        "finding_indices": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14
+        ]
+      },
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "decision_statement",
+        "description": "The directive to approve the service as submitted is not itself supported by a specific finding; the report supports conformance findings but does not state this decision statement.",
+        "finding_indices": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14
+        ]
+      }
+    ],
+    "omitted_findings": [
+      {
+        "category": "omitted_finding",
+        "severity": "warning",
+        "draft_field": "standards_assessment",
+        "description": "The assessment omits the not_applicable finding that vendor-hosted SaaS approval conditions do not apply because the submission is an internally built, containerized workload, not a vendor-hosted SaaS product.",
+        "finding_indices": [
+          3
+        ]
+      }
+    ],
+    "reviewed_adr": {
+      "submission_id": "SUB-003",
+      "technology": "Member Notification Service",
+      "title": "Approval of Member Notification Service on Enterprise Managed Container Platform",
+      "status": "proposed",
+      "decision": "approved",
+      "context": "The submission describes an internally built, containerized member notification service deployed on the enterprise managed container platform. It uses managed event streaming, the enterprise API gateway, the enterprise identity provider, workload identity federation, role-based access, structured logging, TLS 1.3, and data residency in the continental United States.",
+      "standards_assessment": "All reported findings conform to the applicable standards. The workload uses an approved hosting model and remains within the continental United States with contractual regional pinning. Vendor-hosted SaaS approval conditions do not apply because this is an internally built, containerized workload, not a vendor-hosted software-as-a-service product. Identity, authorization, privileged access, access review, integration patterns, API publication, encryption, data contracts, resilience, and logging all meet the cited requirements.",
+      "decision_statement": "Approve the Member Notification Service as submitted.",
+      "decision_drivers": [
+        "Approved hosting model selected for the new workload.",
+        "Data residency and contractual regional pinning are satisfied.",
+        "Vendor-hosted SaaS conditions do not apply to this internally built, containerized workload.",
+        "Enterprise identity provider federation and role-based access are in place.",
+        "Approved integration patterns, API gateway publication, and versioning are used.",
+        "Transport encryption, at-rest encryption, resilience, and structured logging conform to standards."
+      ],
+      "conditions": [],
+      "positive_consequences": [
+        "The service may proceed without additional remediation conditions.",
+        "The approved design aligns with enterprise hosting, identity, integration, and logging standards.",
+        "Operational controls for access review, versioning, and resilience are already embedded in the design."
+      ],
+      "negative_consequences": [
+        "Approval does not remove the need to maintain the stated controls over time.",
+        "Future changes to hosting, residency, identity, integration, or encryption could require renewed conformance review."
+      ]
+    }
+  },
+  "notices": []
+}

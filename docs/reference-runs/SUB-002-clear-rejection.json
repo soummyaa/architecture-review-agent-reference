@@ -1,0 +1,313 @@
+{
+  "standards_report": {
+    "submission_id": "SUB-002",
+    "technology": "QuickShip Document Service",
+    "summary": "Self-hosted open-source document rendering and delivery library proposed for internal operations on two VMs in a colocation facility, with direct database integration, file-share delivery, and multiple identity, access, encryption, and resilience gaps relative to the cited standards.",
+    "findings": [
+      {
+        "status": "does_not_conform",
+        "requirement": "New workloads must use an approved hosting model; self-managed infrastructure in a colocation facility is not approved.",
+        "standard_evidence": "New workloads must use one of the following, in order of preference:",
+        "analysis": "The submission proposes self-hosting QuickShip on two dedicated virtual machines in an existing colocation facility, which is explicitly outside the approved hosting models.",
+        "submission_evidence": "\"The team proposes deploying QuickShip on two dedicated virtual machines in the existing colocation facility\" and \"This is self-managed infrastructure in a colocation facility and is not an approved hosting model for a new workload.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "1. Approved hosting models",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": "Move the workload to an approved hosting model, preferably the enterprise PaaS or managed container platform; if IaaS is necessary, document why higher-preference options are unsuitable."
+      },
+      {
+        "status": "conforms",
+        "requirement": "Internal-classified data must be stored and processed within the continental United States, with contractual regional pinning for backups, disaster recovery replicas, and support access.",
+        "standard_evidence": "All data classified Internal or above must be stored and processed within the continental United States. Vendors must be able to contractually guarantee regional pinning, including for backups, disaster recovery replicas, and support access.",
+        "analysis": "The submission states that all rendering, primary storage, temporary processing, backups, and support access remain in Ohio, which is within the continental United States, satisfying the residency requirement as written.",
+        "submission_evidence": "\"The facility is in Ohio, and all document rendering, primary storage, and temporary processing remain there. Nightly backups remain in the same Ohio facility. The two designated maintainers are based in Ohio and are the only people with support access; no vendor or overseas support organization can access the workload or its Confidential-classified data.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "2. Data residency",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "not_applicable",
+        "requirement": "Vendor-hosted SaaS conditions apply only to vendor-hosted SaaS products.",
+        "standard_evidence": "A vendor-hosted SaaS product may be approved where all of the following hold:",
+        "analysis": "The submission explicitly states that QuickShip is self-hosted and not a vendor-hosted SaaS product, so this section does not govern the proposal.",
+        "submission_evidence": "\"QuickShip is an internally operated library, not a vendor-hosted software-as-a-service product.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "3. Vendor-hosted SaaS conditions",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "does_not_conform",
+        "requirement": "Production workloads must be deployed across at least two availability zones, or a single-zone deployment must have a documented exception with a stated recovery time objective.",
+        "standard_evidence": "Production workloads must be deployed across at least two availability zones. Single-zone deployments require a documented exception with a stated recovery time objective.",
+        "analysis": "The submission says both virtual machines are in the same facility, share one power zone and one network zone, and there is no documented exception or recovery time objective, so the production deployment is effectively single-zone and noncompliant.",
+        "submission_evidence": "\"Both virtual machines would run in the same facility. There is no secondary site in the proposal. They share one power zone and one network zone, so the production service is effectively single-zone. There is no documented exception and no recovery time objective.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "4. Region and availability",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": "Deploy production across at least two availability zones, or obtain a documented single-zone exception that includes a stated recovery time objective."
+      },
+      {
+        "status": "does_not_conform",
+        "requirement": "Systems handling Internal-classified data or above must federate to the enterprise identity provider; local account stores are not permitted except for a documented break-glass account.",
+        "standard_evidence": "All systems handling Internal-classified data or above must federate to the enterprise identity provider. Local account stores are not permitted except for a documented break-glass account.",
+        "analysis": "The submission uses individual local engineer accounts for SSH access and states that these accounts do not federate to the enterprise identity provider, which violates the human authentication requirement.",
+        "submission_evidence": "\"Operational access is via SSH to the virtual machines using individual local engineer accounts with passwords. These accounts do not federate to the enterprise identity provider\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "1. Human authentication",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": "Federate operational access to the enterprise identity provider and eliminate local account stores except for a documented break-glass account."
+      },
+      {
+        "status": "does_not_conform",
+        "requirement": "Service-to-service authentication must use workload identity issued by the cloud platform; long-lived static credentials are not approved for new systems.",
+        "standard_evidence": "Service-to-service authentication must use workload identity issued by the cloud platform. Long-lived static credentials, including API keys and shared secrets, are not approved for new systems.",
+        "analysis": "The submission uses a static username and password in a configuration file and explicitly says it is not a cloud-issued workload identity, so it fails the workload authentication requirement.",
+        "submission_evidence": "\"The database connection uses a static username and password held in a configuration file on each virtual machine... It is a long-lived credential... and is not a cloud-issued workload identity.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "2. Workload authentication",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": "Replace the static credential with cloud-issued workload identity; if a third-party limitation exists, store credentials in the enterprise secrets manager, rotate them at least every ninety days, and keep them out of source control and configuration files."
+      },
+      {
+        "status": "does_not_conform",
+        "requirement": "Access must be role-based, with role or group abstraction rather than individual-user permissions only.",
+        "standard_evidence": "Access must be role-based. Systems that grant permissions only at an individual-user level, with no role or group abstraction, do not meet this standard.",
+        "analysis": "The submission states that each engineer receives permissions directly and that there are no roles or enterprise directory groups, which is explicitly noncompliant.",
+        "submission_evidence": "\"Each engineer receives permissions directly on both virtual machines. There are no roles, enterprise directory groups, or group-based joiner, mover, and leaver controls.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "3. Authorization model",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": "Introduce role-based access with enterprise directory groups mapped to roles and remove direct individual-user permission assignment."
+      },
+      {
+        "status": "does_not_conform",
+        "requirement": "Administrative access must be time-bound and requested, not standing; permanently assigned administrator accounts require a documented exception.",
+        "standard_evidence": "Administrative access must be time-bound and requested, not standing. Systems that require permanently assigned administrator accounts require a documented exception.",
+        "analysis": "The submission states that both maintainers have permanent root access and that access is standing, with no documented exception, which fails the privileged access requirement.",
+        "submission_evidence": "\"Both designated maintainers have permanent root access. Access is standing, not requested or time-bound, and there is no documented exception.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "4. Privileged access",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": "Implement time-bound, requested administrative access and remove standing root accounts; if permanent admin access is unavoidable, obtain a documented exception."
+      },
+      {
+        "status": "does_not_conform",
+        "requirement": "All systems must support an export of users and their effective permissions, in a machine-readable format, to support quarterly access reviews.",
+        "standard_evidence": "All systems must support an export of users and their effective permissions, in a machine-readable format, to support quarterly access reviews.",
+        "analysis": "The submission says machine-readable exports cannot be produced, so the access review requirement is not met.",
+        "submission_evidence": "\"QuickShip and the virtual machines cannot export users and effective permissions in a machine-readable format.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "5. Access review",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": "Provide a machine-readable export of users and effective permissions for quarterly access reviews."
+      },
+      {
+        "status": "does_not_conform",
+        "requirement": "New integrations must use an approved integration pattern; direct database-to-database connections between systems owned by different teams are not approved.",
+        "standard_evidence": "New integrations must use one of:",
+        "analysis": "The submission includes a direct database-to-database integration between the claims platform and QuickShip job table, which STD-003 explicitly disallows for systems owned by different teams.",
+        "submission_evidence": "\"The claims platform would write document-status reconciliation records directly into a QuickShip job table in a dedicated PostgreSQL database... This is an undocumented direct database-to-database contract between systems owned by different teams.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "1. Approved integration patterns",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": "Replace the direct database integration with an approved pattern such as synchronous REST over HTTPS, asynchronous messaging, or managed bulk file transfer."
+      },
+      {
+        "status": "partially_conforms",
+        "requirement": "Externally reachable APIs must be published through the enterprise API gateway, versioned in the path, and retain the prior major version for at least six months after a breaking change.",
+        "standard_evidence": "Externally reachable APIs must be published through the enterprise API gateway. APIs must be versioned in the path, and breaking changes require a new major version with the prior version supported for at least six months.",
+        "analysis": "The submission states the REST interface is published through the enterprise API gateway, versioned at /v1, and uses new major versions for breaking changes, but it supports the prior major version for 12 months rather than merely at least six months. However, the same section also requires all APIs to enforce authentication per STD-002, and the submission says there are no anonymous endpoints and the interface is authenticated through the enterprise identity provider. Overall, the API controls are substantially met for the described API, but the direct database feed remains noncompliant under Section 1 and the section is only partially satisfied by the API portion described.",
+        "submission_evidence": "\"It is published through the enterprise API gateway at the versioned /v1 path... Breaking changes use a new major path version, and the prior major version remains supported for 12 months... authenticated through the enterprise identity provider. There are no anonymous endpoints.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "2. API requirements",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": "Keep the API controls as described, and ensure all externally reachable APIs follow the gateway, path-versioning, and support-window requirements; also remove or replace the separate noncompliant direct database integration."
+      },
+      {
+        "status": "does_not_conform",
+        "requirement": "All data in transit must use TLS 1.2 or higher, and data at rest must be encrypted using platform-managed or customer-managed keys.",
+        "standard_evidence": "All data in transit must use TLS 1.2 or higher. Data at rest must be encrypted using platform-managed or customer-managed keys. Systems that cannot encrypt at rest are limited to Public-classified data.",
+        "analysis": "The submission states that transport uses no TLS and that documents on the file share are not encrypted at rest, while the data is Confidential-classified, so it fails both transport and encryption requirements.",
+        "submission_evidence": "\"Transport between the claims platform and the QuickShip database is over the internal network without TLS\" and \"Documents on the file share are not encrypted at rest.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "3. Transport and encryption",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": "Use TLS 1.2 or higher for all in-transit data and encrypt data at rest with platform-managed or customer-managed keys."
+      },
+      {
+        "status": "does_not_conform",
+        "requirement": "Every integration must have a documented schema; consumers must tolerate unknown fields; producers must not remove or repurpose fields within a major version.",
+        "standard_evidence": "Every integration must have a documented schema. Consumers must tolerate the addition of unknown fields. Producers must not remove or repurpose fields within a major version.",
+        "analysis": "The submission says no schema document, schema registry entry, data dictionary, or versioned contract exists, producers may change or repurpose columns, and the consumer fails on unrecognized columns, so it violates all three data-contract requirements.",
+        "submission_evidence": "\"No schema document, schema registry entry, data dictionary, or versioned contract exists for either integration. Producers may change or repurpose columns without a major version, and the QuickShip consumer fails on unrecognized columns.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "4. Data contracts",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": "Document the schema, make consumers ignore unknown fields, and prevent producers from removing or repurposing fields within a major version."
+      },
+      {
+        "status": "does_not_conform",
+        "requirement": "Consumers must implement retry with exponential backoff and a circuit breaker; indefinite retry without backoff does not meet the standard.",
+        "standard_evidence": "Consumers must implement retry with exponential backoff and a circuit breaker. Integrations that retry indefinitely without backoff do not meet this standard.",
+        "analysis": "The submission states retries occur every thirty seconds without backoff or retry limit and that neither integration has a circuit breaker, which directly fails the resilience requirement.",
+        "submission_evidence": "\"Failed database polls and file-share writes are retried every thirty seconds without backoff and without a retry limit. Neither integration has a circuit breaker.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "5. Rate limiting and resilience",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": "Implement retry with exponential backoff and add a circuit breaker for each integration consumer."
+      },
+      {
+        "status": "conforms",
+        "requirement": "Integration points must emit structured logs to the enterprise logging platform, include a correlation identifier propagated across service boundaries, and exclude payload data classified Internal or above.",
+        "standard_evidence": "Integration points must emit structured logs to the enterprise logging platform, including a correlation identifier propagated across service boundaries. Logs must not contain payload data classified Internal or above.",
+        "analysis": "The submission states that both integrations emit structured JSON logs to the enterprise logging platform, propagate a UUID correlation identifier, and exclude member data, document contents, and credentials, satisfying the logging requirement.",
+        "submission_evidence": "\"Both integrations emit structured JSON operational logs to the enterprise logging platform. A UUID correlation identifier created with each render request is propagated to the job-table and file-share events. Logs contain only timestamps, operation names, status codes, and correlation identifiers; member names, addresses, claim references, document contents, and database credentials are excluded.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "6. Logging",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      }
+    ]
+  },
+  "draft_adr": {
+    "submission_id": "SUB-002",
+    "technology": "QuickShip Document Service",
+    "title": "Decision on QuickShip Document Service deployment and integration design",
+    "status": "proposed",
+    "decision": "rejected",
+    "context": "QuickShip Document Service is proposed as a self-hosted open-source document rendering and delivery library for internal operations on two virtual machines in a colocation facility, with direct database integration, file-share delivery, and several identity, encryption, resilience, and availability gaps. External research was not available and did not affect the standards-based assessment.",
+    "standards_assessment": "The submission contains multiple non-conformances against the authoritative standards. The most significant is the use of self-managed infrastructure in a colocation facility for a new workload, which is not an approved hosting model under STD-001 Section 1. That hosting-model gap is structural because the proposed design explicitly depends on self-hosted infrastructure and cannot be made compliant by configuration, contract, or process changes without changing the hosting model itself. Additional gaps are remediable, including single-zone deployment without an exception, local non-federated accounts, static service credentials, lack of role-based access, standing root access, missing machine-readable access exports, direct database-to-database integration, lack of TLS and encryption at rest, missing schema governance, and missing retry backoff/circuit breaker controls. Because at least one structural gap exists, the decision is rejected.",
+    "decision_statement": "Rejected because the proposed self-hosted colocation hosting model is not approved for a new workload, and the submission also contains multiple additional non-conformances in identity, integration, encryption, and resilience controls.",
+    "decision_drivers": [
+      "STD-001 requires approved hosting models for new workloads; the proposal uses self-managed infrastructure in a colocation facility.",
+      "STD-001 availability requirements are not met because the workload is effectively single-zone and lacks a documented exception with recovery time objective.",
+      "STD-002 identity and access controls are not met due to local accounts, static credentials, direct individual permissions, standing root access, and missing access-review exports.",
+      "STD-003 integration controls are not met due to direct database integration, lack of TLS and encryption at rest, missing schema governance, and missing retry backoff/circuit breaker controls.",
+      "At least one gap is structural, so the decision policy requires rejection rather than approval with conditions."
+    ],
+    "conditions": [],
+    "positive_consequences": [
+      "The decision clearly blocks a noncompliant deployment before it enters production.",
+      "The assessment identifies which issues are structural versus remediable, helping the team focus redesign efforts.",
+      "The standards-based rejection avoids creating an exception path that would weaken hosting and security controls."
+    ],
+    "negative_consequences": [
+      "The workload cannot proceed as proposed and must be redesigned before approval.",
+      "The team will need to change the hosting model and address the remaining control gaps in a revised submission.",
+      "Delivery timelines may extend while the design is reworked and resubmitted."
+    ]
+  },
+  "review": {
+    "submission_id": "SUB-002",
+    "verdict": "revised",
+    "unsupported_claims": [
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "context",
+        "description": "The phrase \"External research was not available and did not affect the standards-based assessment\" is not supported by any finding in the standards report.",
+        "finding_indices": []
+      },
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "standards_assessment",
+        "description": "The statement that the hosting-model gap \"cannot be made compliant by configuration, contract, or process changes without changing the hosting model itself\" is not supported by the report.",
+        "finding_indices": []
+      },
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "standards_assessment",
+        "description": "The claim that \"at least one structural gap exists\" is not supported by the report.",
+        "finding_indices": []
+      },
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "decision_statement",
+        "description": "The phrase \"the decision policy requires rejection rather than approval with conditions\" is not supported by the report.",
+        "finding_indices": []
+      },
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "decision_drivers",
+        "description": "The claim that \"At least one gap is structural\" is not supported by the report.",
+        "finding_indices": []
+      }
+    ],
+    "omitted_findings": [
+      {
+        "category": "omitted_finding",
+        "severity": "warning",
+        "draft_field": "decision_drivers",
+        "description": "The draft omits that the submission is only partially conformant for externally reachable APIs: it is published through the enterprise API gateway, versioned at /v1, uses new major versions for breaking changes, and authenticates through the enterprise identity provider, but the prior major version is supported for 12 months and the section is only partially satisfied because of the separate noncompliant direct database integration.",
+        "finding_indices": [
+          10
+        ]
+      }
+    ],
+    "reviewed_adr": {
+      "submission_id": "SUB-002",
+      "technology": "QuickShip Document Service",
+      "title": "Decision on QuickShip Document Service deployment and integration design",
+      "status": "proposed",
+      "decision": "rejected",
+      "context": "QuickShip Document Service is proposed as a self-hosted open-source document rendering and delivery library for internal operations on two virtual machines in a colocation facility, with direct database integration, file-share delivery, and several identity, encryption, resilience, and availability gaps.",
+      "standards_assessment": "The submission contains multiple non-conformances against the authoritative standards. The most significant is the use of self-managed infrastructure in a colocation facility for a new workload, which is not an approved hosting model under STD-001 Section 1. Additional gaps are remediable, including single-zone deployment without an exception, local non-federated accounts, static service credentials, lack of role-based access, standing root access, missing machine-readable access exports, direct database-to-database integration, lack of TLS and encryption at rest, missing schema governance, and missing retry backoff/circuit breaker controls. Because the submission does not conform to the standards, the decision is rejected.",
+      "decision_statement": "Rejected because the proposed self-hosted colocation hosting model is not approved for a new workload, and the submission also contains multiple additional non-conformances in identity, integration, encryption, and resilience controls.",
+      "decision_drivers": [
+        "STD-001 requires approved hosting models for new workloads; the proposal uses self-managed infrastructure in a colocation facility.",
+        "STD-001 availability requirements are not met because the workload is effectively single-zone and lacks a documented exception with recovery time objective.",
+        "STD-002 identity and access controls are not met due to local accounts, static credentials, direct individual permissions, standing root access, and missing access-review exports.",
+        "STD-003 integration controls are not met due to direct database integration, lack of TLS and encryption at rest, missing schema governance, and missing retry backoff/circuit breaker controls.",
+        "STD-003 API requirements are partially met: the API is published through the enterprise API gateway, versioned at /v1, uses new major versions for breaking changes, and authenticates through the enterprise identity provider, but the prior major version is supported for 12 months and the section is only partially satisfied because of the separate noncompliant direct database integration."
+      ],
+      "conditions": [],
+      "positive_consequences": [
+        "The decision clearly blocks a noncompliant deployment before it enters production.",
+        "The assessment identifies which issues are structural versus remediable, helping the team focus redesign efforts.",
+        "The standards-based rejection avoids creating an exception path that would weaken hosting and security controls."
+      ],
+      "negative_consequences": [
+        "The workload cannot proceed as proposed and must be redesigned before approval.",
+        "The team will need to change the hosting model and address the remaining control gaps in a revised submission.",
+        "Delivery timelines may extend while the design is reworked and resubmitted."
+      ]
+    }
+  },
+  "notices": []
+}

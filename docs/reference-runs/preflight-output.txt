@@ -1,0 +1,7 @@
+[PASS] Azure CLI: Azure CLI is present
+[PASS] Azure CLI login: Azure CLI has an active signed-in account
+[PASS] Python version: Python 3.11.16
+[PASS] Required Python packages: 7 required imports succeeded
+[PASS] Foundry project reachability: project host resolved and accepted a TCP connection
+[PASS] Model deployment present and callable: deployment returned a chat completion
+[PASS] Data-plane role assignment: authenticated connections API request succeeded

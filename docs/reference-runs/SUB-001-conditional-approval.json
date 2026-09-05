@@ -1,0 +1,364 @@
+{
+  "standards_report": {
+    "submission_id": "SUB-001",
+    "technology": "Northwind Analytics Cloud",
+    "summary": "Vendor-hosted analytics and dashboarding platform with SaaS delivery, U.S.-pinned residency, multi-AZ production, federated human authentication, role-based access, documented exports, compliant API exposure, encrypted transport, documented schemas, resilience controls, and structured logging; however, it uses long-lived static credentials for one connector and standing local administrator accounts, which do not conform to the workload authentication and privileged access requirements.",
+    "findings": [
+      {
+        "status": "conforms",
+        "requirement": "New workloads must use an approved hosting model.",
+        "standard_evidence": "New workloads must use one of the following, in order of preference:",
+        "analysis": "The submission proposes a vendor-hosted SaaS platform, which is an approved hosting model when the SaaS conditions are met.",
+        "submission_evidence": "\"Northwind Analytics Cloud, a vendor-hosted analytics and dashboarding platform.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "1. Approved hosting models",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Internal-classified data must be stored and processed within the continental United States, with contractual regional pinning for backups, disaster recovery replicas, and support access.",
+        "standard_evidence": "All data classified Internal or above must be stored and processed within the continental United States. Vendors must be able to contractually guarantee regional pinning, including for backups, disaster recovery replicas, and support access.",
+        "analysis": "The submission states that all enterprise data is contractually pinned to Virginia and Ohio, both in the continental United States, and that the restriction covers storage, processing, backups, disaster recovery replicas, telemetry, and support access.",
+        "submission_evidence": "\"Our account would be contractually pinned to the vendor's Virginia and Ohio regions, both within the continental United States.\" and \"This restriction includes primary storage, temporary processing, backups, disaster recovery replicas, telemetry containing enterprise data, and support access.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "2. Data residency",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Vendor-hosted SaaS must satisfy the SaaS approval conditions.",
+        "standard_evidence": "A vendor-hosted SaaS product may be approved where all of the following hold:",
+        "analysis": "The submission directly states the SaaS product has a current SOC 2 Type II report, contractually committed U.S. residency, SSO via SAML 2.0, a documented export path, and subprocessors disclosed with notice before changes.",
+        "submission_evidence": "\"The vendor holds a SOC 2 Type II report\"; \"The contract states that all enterprise data is stored and processed only in Virginia and Ohio\"; \"Northwind supports SAML 2.0 federation\"; \"Northwind's access-review API exports every user...\"; \"The vendor contract lists every subprocessor by legal name and processing location.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "3. Vendor-hosted SaaS conditions",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Production workloads must be deployed across at least two availability zones, or have a documented exception with an RTO if single-zone.",
+        "standard_evidence": "Production workloads must be deployed across at least two availability zones. Single-zone deployments require a documented exception with a stated recovery time objective.",
+        "analysis": "The submission states production runs across three availability zones in Virginia and three in Ohio, which exceeds the minimum two-AZ requirement.",
+        "submission_evidence": "\"Production is active across three availability zones in Virginia and three availability zones in Ohio.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "4. Region and availability",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Systems handling Internal-classified data or above must federate to the enterprise identity provider, with no local account store except break-glass.",
+        "standard_evidence": "All systems handling Internal-classified data or above must federate to the enterprise identity provider. Local account stores are not permitted except for a documented break-glass account.",
+        "analysis": "The submission states SAML federation to the enterprise identity provider and says there are no local user accounts other than two administrator accounts; the human-login path is federated and MFA is enforced by the enterprise identity provider.",
+        "submission_evidence": "\"Northwind supports SAML 2.0 federation, which we would configure against the enterprise identity provider.\" and \"MFA is enforced by the enterprise identity provider for every human login\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "1. Human authentication",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "does_not_conform",
+        "requirement": "Service-to-service authentication must use workload identity issued by the cloud platform; long-lived static credentials are not approved.",
+        "standard_evidence": "Service-to-service authentication must use workload identity issued by the cloud platform. Long-lived static credentials, including API keys and shared secrets, are not approved for new systems.",
+        "analysis": "The submission explicitly says the connector authenticates with a dedicated service account and long-lived password, and that this does not conform. Planned future migration does not satisfy the current requirement.",
+        "submission_evidence": "\"The Northwind transfer connector authenticates with a dedicated service account and long-lived password stored in Northwind's credential vault.\" and \"This does not conform to the workload identity requirement.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "2. Workload authentication",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": "Replace the long-lived service account password with cloud-issued workload identity for the connector, or store any unavoidable third-party credentials in the enterprise secrets manager, rotate them at least every ninety days, and ensure they are never committed to source control or configuration files."
+      },
+      {
+        "status": "conforms",
+        "requirement": "Access must be role-based, with role or group abstraction rather than individual-user permissions.",
+        "standard_evidence": "Access must be role-based. Systems that grant permissions only at an individual-user level, with no role or group abstraction, do not meet this standard.",
+        "analysis": "The submission states roles are defined in Northwind and mapped to enterprise directory groups through SAML group assertions, and permissions cannot be assigned directly to individual users.",
+        "submission_evidence": "\"Roles are defined inside Northwind and mapped only to enterprise directory groups through SAML group assertions; permissions cannot be assigned directly to individual users.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "3. Authorization model",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "does_not_conform",
+        "requirement": "Administrative access must be time-bound and requested, not standing; permanently assigned administrator accounts require a documented exception.",
+        "standard_evidence": "Administrative access must be time-bound and requested, not standing. Systems that require permanently assigned administrator accounts require a documented exception.",
+        "analysis": "The submission states there are two permanently assigned local administrator accounts and that no exception has been approved, which directly violates the requirement.",
+        "submission_evidence": "\"The proposed design has two permanently assigned local administrator accounts for redundancy, and no exception has been approved.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "4. Privileged access",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": "Eliminate standing administrator accounts by implementing time-bound, requested privileged access, or obtain a documented exception if permanently assigned administrator accounts are unavoidable."
+      },
+      {
+        "status": "conforms",
+        "requirement": "All systems must support a machine-readable export of users and effective permissions for quarterly access reviews.",
+        "standard_evidence": "All systems must support an export of users and their effective permissions, in a machine-readable format, to support quarterly access reviews.",
+        "analysis": "The submission states the access-review API exports users and effective permissions as UTF-8 JSON and will be retrieved quarterly.",
+        "submission_evidence": "\"Northwind's access-review API exports every user, enterprise directory group, assigned role, effective permission, account status, and last login as UTF-8 JSON. Identity Governance will retrieve this export quarterly\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "5. Access review",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "New integrations must use an approved integration pattern.",
+        "standard_evidence": "New integrations must use one of:",
+        "analysis": "The submission uses the managed transfer service for bulk file transfer and an API for administrative operations, both of which are approved integration patterns.",
+        "submission_evidence": "\"The enterprise data platform publishes the curated datasets hourly as Parquet 2.6 files through the managed transfer service.\" and \"Northwind also offers a REST API for administrative operations\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "1. Approved integration patterns",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Externally reachable APIs must be published through the enterprise API gateway, versioned in the path, and retain the prior major version for at least six months after breaking changes.",
+        "standard_evidence": "Externally reachable APIs must be published through the enterprise API gateway. APIs must be versioned in the path, and breaking changes require a new major version with the prior version supported for at least six months.",
+        "analysis": "The submission states the administrative API is reached only through the enterprise API gateway at /v1, breaking changes use a new major path version, and the prior major version is supported for 12 months.",
+        "submission_evidence": "\"Enterprise administrative clients reach it only through the enterprise API gateway at the versioned /v1 path\" and \"the vendor supports the prior major version for 12 months.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "2. API requirements",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Data in transit must use TLS 1.2 or higher, and data at rest must be encrypted with approved keys.",
+        "standard_evidence": "All data in transit must use TLS 1.2 or higher. Data at rest must be encrypted using platform-managed or customer-managed keys. Systems that cannot encrypt at rest are limited to Public-classified data.",
+        "analysis": "The submission states TLS 1.2 is enforced on all connections and data is encrypted at rest with AES-256 vendor-managed keys.",
+        "submission_evidence": "\"TLS 1.2 is enforced on all connections.\" and \"Data is encrypted at rest with AES-256 vendor-managed keys.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "3. Transport and encryption",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Every integration must have a documented schema, consumers must tolerate unknown fields, and producers must not remove or repurpose fields within a major version.",
+        "standard_evidence": "Every integration must have a documented schema. Consumers must tolerate the addition of unknown fields. Producers must not remove or repurpose fields within a major version.",
+        "analysis": "The submission states the schemas are versioned in the enterprise schema registry, the connector ignores unrecognized fields, and the platform does not remove or repurpose fields within a major schema version.",
+        "submission_evidence": "\"The Parquet schemas are versioned in the enterprise schema registry.\" \"The Northwind connector ignores unrecognized fields\" and \"the data platform does not remove or repurpose fields within a major schema version.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "4. Data contracts",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Consumers must implement retry with exponential backoff and a circuit breaker.",
+        "standard_evidence": "Consumers must implement retry with exponential backoff and a circuit breaker. Integrations that retry indefinitely without backoff do not meet this standard.",
+        "analysis": "The submission states both integration points retry at most five times with exponential backoff and use a circuit breaker that opens after five consecutive failures.",
+        "submission_evidence": "\"For both the managed transfer and administrative API integrations, Northwind retries at most five times with exponential backoff\" and \"A circuit breaker opens for 60 seconds after five consecutive failures.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "5. Rate limiting and resilience",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Integration points must emit structured logs to the enterprise logging platform, include a correlation identifier across service boundaries, and exclude Internal-classified payload data.",
+        "standard_evidence": "Integration points must emit structured logs to the enterprise logging platform, including a correlation identifier propagated across service boundaries. Logs must not contain payload data classified Internal or above.",
+        "analysis": "The submission states both integration points emit structured JSON logs to the enterprise logging platform, propagate a UUID correlation identifier, and exclude Internal-classified payload data.",
+        "submission_evidence": "\"Both integration points emit structured JSON logs to the enterprise logging platform and propagate a UUID correlation identifier from export through import.\" and \"Logs contain ... but exclude financial values, customer counts, file contents, credentials, and all other Internal-classified payload data.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "6. Logging",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      }
+    ]
+  },
+  "draft_adr": {
+    "submission_id": "SUB-001",
+    "technology": "Northwind Analytics Cloud",
+    "title": "Approval Decision for Northwind Analytics Cloud",
+    "status": "proposed",
+    "decision": "approved_with_conditions",
+    "context": "Northwind Analytics Cloud is a vendor-hosted SaaS analytics and dashboarding platform with U.S.-pinned residency, multi-AZ production, federated human authentication, role-based access, approved integration patterns, encrypted transport, documented schemas, resilience controls, and structured logging. External research was not available because search connectivity was not configured, so the decision is based on the supplied conformance report and standards evidence.",
+    "standards_assessment": "Most findings conform to the applicable standards across hosting, residency, SaaS conditions, availability, human authentication, authorization, integration patterns, API exposure, encryption, data contracts, resilience, and logging. Two findings do not conform under STD-002: the workload authentication for the transfer connector uses a long-lived static password, and privileged access relies on two permanently assigned local administrator accounts. Both gaps are remediable through configuration, credential-management, or process changes rather than requiring a structural redesign of the proposed SaaS platform.",
+    "decision_statement": "Approved with conditions. The submission may proceed only after the two non-conformances in workload authentication and privileged access are remediated and the required evidence is provided.",
+    "decision_drivers": [
+      "The proposed SaaS hosting model is approved.",
+      "Data residency and SaaS contractual conditions are satisfied.",
+      "Identity federation, role-based access, integration controls, encryption, schema management, resilience, and logging conform.",
+      "Two STD-002 gaps remain, and both are remediable without replacing the core design.",
+      "No structural gap was identified in the supplied findings."
+    ],
+    "conditions": [
+      {
+        "action": "Replace the long-lived service account password for the Northwind transfer connector with cloud-issued workload identity; if any third-party credential remains unavoidable, store it in the enterprise secrets manager, rotate it at least every ninety days, and ensure it is never committed to source control or configuration files.",
+        "rationale": "The current connector authentication uses a long-lived static credential, which does not conform to the workload authentication requirement. The finding is remediable through credential and configuration changes.",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "2. Workload authentication",
+          "source_file": "STD-002-identity-and-access.md"
+        }
+      },
+      {
+        "action": "Eliminate standing local administrator accounts by implementing time-bound, requested privileged access; if permanently assigned administrator accounts are unavoidable, obtain a documented exception.",
+        "rationale": "The current design includes two permanently assigned local administrator accounts, which does not conform to the privileged access requirement. The finding is remediable through access-model and process changes.",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "4. Privileged access",
+          "source_file": "STD-002-identity-and-access.md"
+        }
+      }
+    ],
+    "positive_consequences": [
+      "The platform can be adopted without changing the approved SaaS hosting model.",
+      "The design already satisfies the majority of hosting, identity, integration, encryption, resilience, and logging requirements.",
+      "The conditions focus remediation on specific access-control weaknesses rather than broader redesign.",
+      "Approval can be finalized once the two access-related gaps are corrected and evidenced."
+    ],
+    "negative_consequences": [
+      "Go-live is contingent on correcting the connector authentication and privileged access model.",
+      "The submitting team must coordinate credential, access, or process changes before final approval.",
+      "Until the conditions are closed, the platform remains approved only conditionally.",
+      "If the required changes cannot be implemented, the submission would need to be resubmitted for reassessment."
+    ]
+  },
+  "review": {
+    "submission_id": "SUB-001",
+    "verdict": "revised",
+    "unsupported_claims": [
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "context",
+        "description": "The statement that external research was not available because search connectivity was not configured is not supported by the standards report.",
+        "finding_indices": []
+      },
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "standards_assessment",
+        "description": "The claim that the two non-conformances are remediable through configuration, credential-management, or process changes rather than requiring a structural redesign is not stated in the standards report.",
+        "finding_indices": [
+          6,
+          8
+        ]
+      },
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "decision_statement",
+        "description": "The requirement that the submission may proceed only after the two non-conformances are remediated and the required evidence is provided is not supported by the standards report.",
+        "finding_indices": [
+          6,
+          8
+        ]
+      },
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "decision_drivers",
+        "description": "The claim that no structural gap was identified in the supplied findings is not supported by the standards report.",
+        "finding_indices": [
+          6,
+          8
+        ]
+      },
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "positive_consequences",
+        "description": "The statement that approval can be finalized once the two access-related gaps are corrected and evidenced is not supported by the standards report.",
+        "finding_indices": [
+          6,
+          8
+        ]
+      },
+      {
+        "category": "unsupported_claim",
+        "severity": "warning",
+        "draft_field": "negative_consequences",
+        "description": "The statement that the platform remains approved only conditionally until the conditions are closed is not supported by the standards report.",
+        "finding_indices": [
+          6,
+          8
+        ]
+      }
+    ],
+    "omitted_findings": [],
+    "reviewed_adr": {
+      "submission_id": "SUB-001",
+      "technology": "Northwind Analytics Cloud",
+      "title": "Approval Decision for Northwind Analytics Cloud",
+      "status": "proposed",
+      "decision": "approved_with_conditions",
+      "context": "Northwind Analytics Cloud is a vendor-hosted SaaS analytics and dashboarding platform with U.S.-pinned residency, multi-AZ production, federated human authentication, role-based access, approved integration patterns, encrypted transport, documented schemas, resilience controls, and structured logging.",
+      "standards_assessment": "Most findings conform to the applicable standards across hosting, residency, SaaS conditions, availability, human authentication, authorization, integration patterns, API exposure, encryption, data contracts, resilience, and logging. Two findings do not conform under STD-002: the workload authentication for the transfer connector uses a long-lived static password, and privileged access relies on two permanently assigned local administrator accounts.",
+      "decision_statement": "Approved with conditions. The submission may proceed only after the two non-conformances in workload authentication and privileged access are remediated.",
+      "decision_drivers": [
+        "The proposed SaaS hosting model is approved.",
+        "Data residency and SaaS contractual conditions are satisfied.",
+        "Identity federation, role-based access, integration controls, encryption, schema management, resilience, and logging conform.",
+        "Two STD-002 gaps remain."
+      ],
+      "conditions": [
+        {
+          "action": "Replace the long-lived service account password for the Northwind transfer connector with cloud-issued workload identity; if any third-party credential remains unavoidable, store it in the enterprise secrets manager, rotate it at least every ninety days, and ensure it is never committed to source control or configuration files.",
+          "rationale": "The current connector authentication uses a long-lived static credential, which does not conform to the workload authentication requirement.",
+          "citation": {
+            "standard_id": "STD-002",
+            "section": "2. Workload authentication",
+            "source_file": "STD-002-identity-and-access.md"
+          }
+        },
+        {
+          "action": "Eliminate standing local administrator accounts by implementing time-bound, requested privileged access; if permanently assigned administrator accounts are unavoidable, obtain a documented exception.",
+          "rationale": "The current design includes two permanently assigned local administrator accounts, which does not conform to the privileged access requirement.",
+          "citation": {
+            "standard_id": "STD-002",
+            "section": "4. Privileged access",
+            "source_file": "STD-002-identity-and-access.md"
+          }
+        }
+      ],
+      "positive_consequences": [
+        "The platform can be adopted without changing the approved SaaS hosting model.",
+        "The design already satisfies the majority of hosting, identity, integration, encryption, resilience, and logging requirements.",
+        "The conditions focus remediation on specific access-control weaknesses rather than broader redesign."
+      ],
+      "negative_consequences": [
+        "Go-live is contingent on correcting the connector authentication and privileged access model.",
+        "The submitting team must coordinate credential, access, or process changes before final approval.",
+        "If the required changes cannot be implemented, the submission would need to be resubmitted for reassessment."
+      ]
+    }
+  },
+  "notices": []
+}

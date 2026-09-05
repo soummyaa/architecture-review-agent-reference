@@ -1,0 +1,5 @@
+[PASS] Microsoft Foundry project: authenticated connections API request succeeded
+[PASS] Model deployment: deployment returned a chat completion
+[WARN] SharePoint via Microsoft Graph: HTTP 400: Invalid hostname for this tenancy (request ID: redacted)
+
+Summary: 2/2 required checks passed; SharePoint check: warning.
