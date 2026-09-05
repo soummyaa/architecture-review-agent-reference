@@ -29,11 +29,14 @@ for import_directory in (REPOSITORY_ROOT, ORCHESTRATION_DIRECTORY):
 from research import (
     DEFAULT_RESEARCH_AGENT_NAME,
     DEFAULT_RESEARCH_ALLOWLIST,
+    empty_research,
     load_research_allowlist,
     run_research_agent,
 )
 from workshop_core import (
     AI_FOUNDRY_SCOPE,
+    DETERMINISTIC_TEMPERATURE,
+    DETERMINISTIC_TOP_P,
     DEFAULT_ADR_AUTHOR_AGENT_NAME,
     DEFAULT_STANDARDS_AGENT_NAME,
     DEFAULT_STANDARDS_DIRECTORY,
@@ -53,6 +56,7 @@ from workshop_core import (
     traced_span,
     validate_adr,
     validate_citations,
+    workflow_error_payload,
 )
 
 DEFAULT_REVIEWER_AGENT_NAME = "architecture-adr-reviewer-agent"
@@ -298,6 +302,8 @@ def run_reviewer_agent(
             agent_name=agent_name,
             definition=PromptAgentDefinition(
                 model=model_deployment,
+                temperature=DETERMINISTIC_TEMPERATURE,
+                top_p=DETERMINISTIC_TOP_P,
                 instructions=build_reviewer_instructions(),
                 text=PromptAgentDefinitionTextOptions(
                     format=TextResponseFormatJsonSchema(
@@ -360,6 +366,13 @@ def orchestrate_submission(
     skip_research: bool = False,
     keep_agent: bool = False,
 ) -> ReviewWorkflowResult:
+    research_connection_missing = not skip_research and not web_search_connection_id
+    if research_connection_missing:
+        print(
+            "Research skipped: no Bing or Bing Custom Search connection was configured",
+            file=sys.stderr,
+        )
+
     with (
         DefaultAzureCredential() as credential,
         AIProjectClient(
@@ -382,6 +395,11 @@ def orchestrate_submission(
         research: TechnologyResearch | None = None
         if skip_research:
             print("Research agent skipped", file=sys.stderr)
+        elif research_connection_missing:
+            research = empty_research(
+                standards_report,
+                "no Bing or Bing Custom Search connection was configured",
+            )
         else:
             research = run_research_agent(
                 project_client,
@@ -445,9 +463,12 @@ def main() -> int:
         )
     except Exception as error:
         print(f"Architecture review orchestration failed: {error}", file=sys.stderr)
+        print(json.dumps(workflow_error_payload(error), indent=2))
         return 1
 
-    print(result.model_dump_json(indent=2))
+    payload = result.model_dump(mode="json")
+    payload["notices"] = result.draft_adr.processing_notices
+    print(json.dumps(payload, indent=2))
     return 0
 
 

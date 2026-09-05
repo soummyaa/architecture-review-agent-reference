@@ -1,9 +1,12 @@
+import json
 import unittest
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import run as orchestration_run
 from run import (
     AI_FOUNDRY_SCOPE,
     AdrCondition,
@@ -13,15 +16,19 @@ from run import (
     ConformanceReport,
     ResearchCitation,
     ResearchClaim,
+    DEFAULT_STANDARDS_DIRECTORY,
     TechnologyResearch,
     build_adr_author_instructions,
     build_standards_instructions,
     normalize_allowed_domains,
     orchestrate_submission,
+    load_standards,
     run_adr_author_agent,
     run_research_agent,
+    run_standards_agent,
     url_is_allowed,
     validate_adr,
+    validate_citations,
     validate_research,
 )
 
@@ -43,6 +50,10 @@ def example_report() -> ConformanceReport:
             ConformanceFinding(
                 status="not_evidenced",
                 requirement="Use workload identity.",
+                standard_evidence=(
+                    "Service-to-service authentication must use workload identity issued by "
+                    "the cloud platform."
+                ),
                 analysis="The proposal does not describe workload authentication.",
                 submission_evidence="No workload authentication details provided",
                 citation=example_citation(),
@@ -206,13 +217,51 @@ class OrchestratorTests(unittest.TestCase):
         self.assertIsNone(adr_author_agent.call_args.args[5])
         self.assertIn("Research agent skipped", stderr.getvalue())
 
+    @patch("run.AIProjectClient")
+    @patch("run.DefaultAzureCredential")
+    @patch("run.run_adr_author_agent")
+    @patch("run.run_research_agent")
+    @patch("run.run_standards_agent")
+    def test_missing_connection_passes_empty_research_to_author(
+        self,
+        standards_agent: MagicMock,
+        research_agent: MagicMock,
+        adr_author_agent: MagicMock,
+        _credential_factory: MagicMock,
+        _project_client_factory: MagicMock,
+    ) -> None:
+        report = example_report()
+        standards_agent.return_value = report
+        adr_author_agent.return_value = example_adr()
+
+        stderr = StringIO()
+        with redirect_stderr(stderr):
+            orchestrate_submission(
+                "https://example.services.ai.azure.com/api/projects/example",
+                "example-model",
+                "standards-agent",
+                "research-agent",
+                "author-agent",
+                Path("submission.md"),
+                [],
+                None,
+                ["example.com"],
+            )
+
+        research_agent.assert_not_called()
+        research = adr_author_agent.call_args.args[5]
+        self.assertEqual(research.submission_id, report.submission_id)
+        self.assertEqual(research.technology, report.technology)
+        self.assertEqual(research.claims, [])
+        self.assertIn("no Bing or Bing Custom Search connection", stderr.getvalue())
+
 
 class AdrValidationTests(unittest.TestCase):
     def test_standards_instructions_limit_saas_conditions_to_saas(self) -> None:
         instructions = " ".join(build_standards_instructions([]).split())
 
         self.assertIn(
-            "omit requirements that do not apply to the proposed technology",
+            "Return exactly one finding for every numbered section",
             instructions,
         )
         self.assertIn(
@@ -220,11 +269,11 @@ class AdrValidationTests(unittest.TestCase):
             instructions,
         )
         self.assertIn(
-            "It is not a valid citation for an internally built or self-hosted workload",
+            "cite it once with status not_applicable",
             instructions,
         )
         self.assertIn(
-            "return at most one finding for each applicable numbered standard section",
+            "Return exactly one finding for every numbered section",
             instructions,
         )
         self.assertIn(
@@ -322,6 +371,64 @@ class AdrValidationTests(unittest.TestCase):
 
 
 class FoundryClientTests(unittest.TestCase):
+    def test_standards_agent_requests_and_returns_every_catalog_section(self) -> None:
+        project_client = MagicMock()
+        openai_client = MagicMock()
+        agent = project_client.agents.create_version.return_value
+        agent.name = "standards-agent"
+        agent.version = "1"
+        openai_client.vector_stores.create.return_value.id = "vector-store-1"
+        openai_client.conversations.create.return_value.id = "conversation-1"
+        openai_client.vector_stores.files.upload_and_poll.return_value.id = "file-1"
+        standards = load_standards(DEFAULT_STANDARDS_DIRECTORY)
+        report = ConformanceReport(
+            submission_id="SUB-001",
+            technology="Example Service",
+            summary="All catalog sections were assessed.",
+            findings=[
+                ConformanceFinding(
+                    status="conforms",
+                    requirement=f"Assess {standard.standard_id} {section}.",
+                    standard_evidence=section,
+                    analysis="The submission conforms.",
+                    submission_evidence="Direct evidence.",
+                    citation=Citation(
+                        standard_id=standard.standard_id,
+                        section=section,
+                        source_file=standard.path.name,
+                    ),
+                    remediation="",
+                )
+                for standard in standards
+                for section in sorted(standard.sections)
+            ],
+        )
+        openai_client.responses.create.return_value.output_text = report.model_dump_json()
+
+        result = run_standards_agent(
+            project_client,
+            openai_client,
+            "example-model",
+            "standards-agent",
+            DEFAULT_STANDARDS_DIRECTORY.parent
+            / "submissions/SUB-001-northwind-analytics-cloud.md",
+            standards,
+        )
+
+        self.assertEqual(len(result.findings), 15)
+        definition = project_client.agents.create_version.call_args.kwargs["definition"]
+        self.assertEqual(definition.temperature, 0.0)
+        self.assertEqual(definition.top_p, 1.0)
+        request = openai_client.responses.create.call_args.kwargs["input"]
+        for standard in standards:
+            for section in standard.sections:
+                self.assertIn(f"- {standard.standard_id}: {section}", request)
+
+        invalid_report = report.model_copy(deep=True)
+        invalid_report.findings[0].standard_evidence = "Text absent from the standard"
+        with self.assertRaisesRegex(ValueError, "not a verbatim quote"):
+            validate_citations(invalid_report, standards)
+
     def test_research_agent_uses_shared_clients_and_domain_filter(self) -> None:
         project_client = MagicMock()
         openai_client = MagicMock()
@@ -346,6 +453,8 @@ class FoundryClientTests(unittest.TestCase):
         self.assertEqual(result.claims, example_research().claims)
         definition = project_client.agents.create_version.call_args.kwargs["definition"]
         serialized_tool = definition.tools[0].as_dict()
+        self.assertEqual(definition.temperature, 0.0)
+        self.assertEqual(definition.top_p, 1.0)
         self.assertEqual(serialized_tool["filters"]["allowed_domains"], ["example.com"])
         self.assertNotIn("custom_search_configuration", serialized_tool)
         self.assertIn("Validated 1 research citations", stderr.getvalue())
@@ -378,6 +487,9 @@ class FoundryClientTests(unittest.TestCase):
             stderr.getvalue(),
         )
         author_input = openai_client.responses.create.call_args.kwargs["input"]
+        definition = project_client.agents.create_version.call_args.kwargs["definition"]
+        self.assertEqual(definition.temperature, 0.0)
+        self.assertEqual(definition.top_p, 1.0)
         self.assertIn('"technology_research"', author_input)
         self.assertIn("https://docs.example.com/deployment", author_input)
 
@@ -411,6 +523,111 @@ class FoundryClientTests(unittest.TestCase):
 
         project_client.agents.delete_version.assert_not_called()
         openai_client.conversations.delete.assert_not_called()
+
+    def test_adr_author_removes_condition_for_conforming_finding(self) -> None:
+        project_client = MagicMock()
+        openai_client = MagicMock()
+        agent = project_client.agents.create_version.return_value
+        agent.name = "author-agent"
+        agent.version = "1"
+        openai_client.conversations.create.return_value.id = "conversation-1"
+
+        report = example_report()
+        conforming_citation = Citation(
+            standard_id="STD-003",
+            section="3. Transport and encryption",
+            source_file="STD-003-integration-and-data-exchange.md",
+        )
+        report.findings.append(
+            ConformanceFinding(
+                status="conforms",
+                requirement="Encrypt transport.",
+                standard_evidence="All data in transit must use TLS 1.2 or higher.",
+                analysis="The proposal uses TLS.",
+                submission_evidence="TLS 1.3",
+                citation=conforming_citation,
+                remediation="",
+            )
+        )
+        model_adr = example_adr().model_copy(deep=True)
+        model_adr.conditions.append(
+            AdrCondition(
+                action="Retain TLS 1.3.",
+                rationale="Transport already conforms.",
+                citation=conforming_citation,
+            )
+        )
+        openai_client.responses.create.return_value.output_text = model_adr.model_dump_json()
+
+        stderr = StringIO()
+        with redirect_stderr(stderr):
+            result = run_adr_author_agent(
+                project_client,
+                openai_client,
+                "example-model",
+                "author-agent",
+                report,
+                None,
+            )
+
+        self.assertEqual(result.conditions, [model_adr.conditions[0]])
+        expected_notice = (
+            'Condition removed: "Retain TLS 1.3." cited conforming finding 003/3.'
+        )
+        self.assertEqual(result.processing_notices, [expected_notice])
+        self.assertIn(expected_notice, stderr.getvalue())
+
+
+class CliErrorTests(unittest.TestCase):
+    @patch("run.orchestrate_submission")
+    @patch("run.resolve_foundry_config", return_value=("endpoint", "model"))
+    @patch("run.load_research_allowlist", return_value=["example.com"])
+    @patch("run.load_standards", return_value=[])
+    @patch("run.parse_args")
+    def test_main_includes_condition_notice_in_success_json(
+        self,
+        parse_args_mock: MagicMock,
+        _load_standards_mock: MagicMock,
+        _load_allowlist_mock: MagicMock,
+        _resolve_config_mock: MagicMock,
+        orchestrate_mock: MagicMock,
+    ) -> None:
+        parse_args_mock.return_value = SimpleNamespace(
+            submission=Path(__file__),
+            standards_directory=Path("standards"),
+            skip_research=False,
+            research_allowlist=Path("allowlist.json"),
+            standards_agent_name="standards",
+            research_agent_name="research",
+            adr_author_agent_name="author",
+            web_search_connection_id="connection",
+            keep_agent=False,
+        )
+        adr = example_adr()
+        notice = 'Condition removed: "Retain TLS 1.3." cited conforming finding 003/3.'
+        adr._processing_notices = [notice]
+        orchestrate_mock.return_value = adr
+        stdout = StringIO()
+
+        with redirect_stdout(stdout), redirect_stderr(StringIO()):
+            exit_code = orchestration_run.main()
+
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["notices"], [notice])
+
+    @patch("run.parse_args")
+    def test_main_emits_json_when_workflow_fails(self, parse_args_mock: MagicMock) -> None:
+        parse_args_mock.return_value.submission = Path("missing-submission.md")
+        stdout = StringIO()
+
+        with redirect_stdout(stdout), redirect_stderr(StringIO()):
+            exit_code = orchestration_run.main()
+
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(payload["error"]["type"], "RuntimeError")
+        self.assertIn("Submission not found", payload["error"]["message"])
 
 
 if __name__ == "__main__":

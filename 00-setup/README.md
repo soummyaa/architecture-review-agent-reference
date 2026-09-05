@@ -46,9 +46,23 @@ Clone this repository and run the setup script from any directory. It is safe
 to re-run and installs all module requirements in one pip command:
 
 ```bash
+export PIP_INDEX_URL="https://nexus.example.invalid/repository/pypi/simple"
 ./00-setup/setup-workstation.sh
 source .venv/bin/activate
 ```
+
+Replace the synthetic URL with the internal Nexus PyPI-compatible index. The
+installer requires `PIP_INDEX_URL`, disables pip configuration and extra
+indexes, and passes that index explicitly to both pip commands. It therefore
+does not silently fall back to `pypi.org`. The devcontainer post-create command
+uses the same installer and requires the variable as a container environment
+variable.
+
+This controls Python packages only. `setup-workstation.sh` also uses the
+configured apt repositories and, when Azure CLI is absent, Microsoft's Azure
+CLI installer; it installs the `bastion` and `ssh` Azure CLI extensions too.
+For a machine without public package access, preinstall Azure CLI and those
+extensions or configure approved internal mirrors for those repositories.
 
 The script uses `sudo` to install operating-system packages and Azure CLI. It
 creates `.venv` at the repository root. Activate `.venv` in each new shell when
@@ -60,6 +74,32 @@ Private networking is enabled by default for regulated environments. Public
 network access to Microsoft Foundry is disabled in both private networking
 modes. The validator and all agent modules must be run from a network that can
 reach the private endpoint.
+
+### Existing Foundry account and project
+
+When the platform team already provides a Foundry account, project, model
+deployment, private endpoint, DNS, and data-plane role assignments, skip the
+`main.bicep` deployment. Do not point the template at the existing account: the
+template is the resource-creation path and would attempt to create a separate
+account and project.
+
+From a workstation on the existing private network, set the existing resource
+values directly and run the same validator:
+
+```bash
+export FOUNDRY_PROJECT_ENDPOINT="https://<account>.services.ai.azure.com/api/projects/<project>"
+export MODEL_ENDPOINT="https://<account>.openai.azure.com"
+export MODEL_DEPLOYMENT_NAME="<existing-model-deployment>"
+export SHAREPOINT_HOSTNAME="<sharepoint-hostname>"
+export SHAREPOINT_SITE_PATH="/sites/<workshop-site>"
+python 00-setup/validate.py
+```
+
+The validator resolves command-line overrides, deployment outputs, and then
+these environment variables. Its required project and model checks are
+identical for existing and newly deployed resources. A passing run confirms
+private-network reachability, model invocation, and effective Azure AI
+Developer data-plane access for the current identity.
 
 ### Greenfield
 
@@ -322,8 +362,15 @@ Run the validator directly. It reads the deployment outputs using
 `rg-architecture-review-workshop`.
 
 ```bash
+python 00-setup/preflight.py
 python 00-setup/validate.py
 ```
+
+Run `preflight.py` before the session. It prints one pass or fail line for
+Azure CLI presence and login, Python, required imports, project reachability,
+model invocation, and the effective data-plane role assignment. It exits
+non-zero if any check fails. The existing-resource environment variables shown
+above work for both scripts.
 
 The validator treats Microsoft Foundry project access and model invocation as
 the two required checks. It prints `[PASS]` or `[FAIL]` for those checks and

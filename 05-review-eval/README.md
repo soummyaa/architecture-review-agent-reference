@@ -52,6 +52,11 @@ author receives no research object and determines the decision from the
 standards findings alone. The standards, ADR author, and reviewer agents still
 run in that order.
 
+When the flag is omitted but no Bing or Bing Custom Search connection ID is
+configured, the orchestrator prints one skip notice and continues. In that
+case, the ADR author receives a valid `TechnologyResearch` object with an empty
+claims list rather than `None` or a partial result.
+
 ## The four-agent chain
 
 The orchestrator is deliberately linear:
@@ -89,17 +94,21 @@ The command exits non-zero if any workflow fails or any result differs, making
 it suitable for checking participant-authored instructions and for automated
 regression runs.
 
-The separate quality-scoring harness is currently hard-coded to require a
-directory containing exactly three `SUB-*.md` files:
+Together, these three deliberately unambiguous synthetic cases prove that the
+system can approve cleanly, approve with conditions, and reject. Real
+submissions will contain more ambiguity, so a production deployment should
+expect more variation than this regression suite shows.
+
+The separate quality-scoring harness runs every `SUB-*.md` file in the selected
+directory:
 
 ```bash
 python 05-review-eval/evaluate.py
 ```
 
-The repository now contains four submission files, so that command currently
-exits before invoking the orchestrator. Point `--submissions-directory` at a
-directory containing exactly the three intended evaluation cases to run it.
-Each case then receives one point for a valid reviewed ADR, one for no
+The repository currently contains four submission files, so the default command
+runs all four. Point `--submissions-directory` at another non-empty directory to
+evaluate a different set. Each case receives one point for a valid reviewed ADR, one for no
 unsupported claims in the author draft, and one for no omitted findings.
 
 ## What you should understand by the end

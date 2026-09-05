@@ -6,6 +6,11 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd -- "$SCRIPT_DIR/.." && pwd)
 VENV_DIR="$REPO_ROOT/.venv"
 
+if [[ -z "${PIP_INDEX_URL:-}" ]]; then
+	echo "PIP_INDEX_URL is required; set it to the approved Python package index." >&2
+	exit 1
+fi
+
 if ! command -v sudo >/dev/null 2>&1; then
 	echo "sudo is required to install workstation packages." >&2
 	exit 1
@@ -35,15 +40,7 @@ else
 	python3 -m venv "$VENV_DIR"
 fi
 
-"$VENV_DIR/bin/python" -m pip install --upgrade pip
-"$VENV_DIR/bin/python" -m pip install \
-	-r "$REPO_ROOT/00-setup/requirements.txt" \
-	-r "$REPO_ROOT/01-standards-agent/requirements.txt" \
-	-r "$REPO_ROOT/02-intake/requirements.txt" \
-	-r "$REPO_ROOT/03-orchestration/requirements.txt" \
-	-r "$REPO_ROOT/04-research/requirements.txt" \
-	-r "$REPO_ROOT/05-review-eval/requirements.txt" \
-	-r "$REPO_ROOT/06-adr-generation/requirements.txt"
+PYTHON="$VENV_DIR/bin/python" "$SCRIPT_DIR/install-python-dependencies.sh"
 
 echo "Workstation setup complete. Activate the environment with:"
 echo "  source $VENV_DIR/bin/activate"

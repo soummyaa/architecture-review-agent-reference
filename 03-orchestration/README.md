@@ -25,7 +25,10 @@ python 03-orchestration/run.py \
 You can pass `--project-endpoint` and `--model-deployment` instead of using
 `AZURE_RESOURCE_GROUP`. Authentication uses `DefaultAzureCredential` and the
 `https://ai.azure.com/.default` scope required by the Foundry project endpoint.
-Plain web search is managed by Foundry and does not require a project connection.
+Set `FOUNDRY_WEB_SEARCH_CONNECTION_ID` or pass `--web-search-connection-id` when
+a Bing or Bing Custom Search connection is available. If no connection is
+configured, the orchestrator reports that research was skipped and continues
+with an empty typed research result.
 
 Approved research domains are stored in
 [`research-allowlist.json`](research-allowlist.json). Replace its example
@@ -91,7 +94,9 @@ The flow is deliberately linear:
 The standards library remains authoritative. Research can inform ADR context
 and consequences, but it cannot override a standards finding. With
 `--skip-research`, the author receives no research object and works only from
-the conformance report.
+the conformance report. Without that flag, a missing connection is detected
+before the agent chain starts; the author instead receives a valid
+`TechnologyResearch` object with an empty claims list.
 
 ## Test
 

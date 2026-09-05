@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the three synthetic submissions and report simple reviewer scores."""
+"""Run synthetic submissions and report simple reviewer scores."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ DEFAULT_SUBMISSIONS_DIRECTORY = REPOSITORY_ROOT / "data" / "synthetic" / "submis
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Score all three synthetic review cases.")
+    parser = argparse.ArgumentParser(description="Score all synthetic review cases.")
     parser.add_argument("--project-endpoint", default=os.getenv("FOUNDRY_PROJECT_ENDPOINT"))
     parser.add_argument("--model-deployment", default=os.getenv("MODEL_DEPLOYMENT_NAME"))
     parser.add_argument("--resource-group", default=os.getenv("AZURE_RESOURCE_GROUP"))
@@ -94,9 +94,9 @@ def score_result(result: ReviewWorkflowResult) -> dict[str, bool]:
 def main() -> int:
     args = parse_args()
     submissions = sorted(args.submissions_directory.glob("SUB-*.md"))
-    if len(submissions) != 3:
+    if not submissions:
         print(
-            f"Evaluation requires exactly three synthetic submissions; found {len(submissions)}",
+            f"Evaluation requires at least one synthetic submission; found {len(submissions)}",
             file=sys.stderr,
         )
         return 1

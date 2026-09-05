@@ -22,6 +22,7 @@ from research import (
     DEFAULT_RESEARCH_AGENT_NAME,
     DEFAULT_RESEARCH_ALLOWLIST,
     build_research_instructions,
+    empty_research,
     load_research_allowlist,
     normalize_allowed_domains,
     run_research_agent,
@@ -51,6 +52,7 @@ from workshop_core import (
     traced_span,
     validate_adr,
     validate_citations,
+    workflow_error_payload,
 )
 
 DEFAULT_DEPLOYMENT_NAME = "architecture-review-setup"
@@ -206,6 +208,13 @@ def orchestrate_submission(
     keep_agent: bool = False,
 ) -> ArchitectureDecisionRecord:
     total_started = time.perf_counter()
+    research_connection_missing = not skip_research and not web_search_connection_id
+    if research_connection_missing:
+        print(
+            "Research skipped: no Bing or Bing Custom Search connection was configured",
+            file=sys.stderr,
+        )
+
     with (
         DefaultAzureCredential() as credential,
         AIProjectClient(
@@ -233,6 +242,11 @@ def orchestrate_submission(
         research: TechnologyResearch | None = None
         if skip_research:
             print("Research agent skipped", file=sys.stderr)
+        elif research_connection_missing:
+            research = empty_research(
+                standards_report,
+                "no Bing or Bing Custom Search connection was configured",
+            )
         else:
             research_started = time.perf_counter()
             research = run_research_agent(
@@ -297,9 +311,12 @@ def main() -> int:
         )
     except Exception as error:
         print(f"Architecture review orchestration failed: {error}", file=sys.stderr)
+        print(json.dumps(workflow_error_payload(error), indent=2))
         return 1
 
-    print(adr.model_dump_json(indent=2))
+    payload = adr.model_dump(mode="json")
+    payload["notices"] = adr.processing_notices
+    print(json.dumps(payload, indent=2))
     return 0
 
 

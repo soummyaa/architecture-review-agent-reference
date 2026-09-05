@@ -28,8 +28,14 @@ python 04-research/run.py \
 
 The command returns a typed `TechnologyResearch` object as JSON. Every claim
 contains one citation. The domains are applied to the Foundry web-search tool
-and checked again against the returned URLs. Plain web search is managed by
-Foundry and does not require a project connection.
+through `WebSearchToolFilters.allowed_domains`, and `validate_research()` checks
+every returned citation URL again. This is code-enforced filtering, reinforced
+by the agent instructions, rather than prompt guidance alone.
+
+Grounding with Bing Custom Search is the product-level option for restricting
+results to domains configured in the search resource. It is governed by the
+same Grounding with Bing terms as standard Bing grounding, so it narrows the
+result set without changing the data-handling posture.
 
 The technologies in the workshop submissions are synthetic. An empty claims
 list is therefore a valid and expected result when no approved source confirms

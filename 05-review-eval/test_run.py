@@ -1,8 +1,13 @@
+import json
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import workshop_core
+import run as review_run
 from run import (
     AI_FOUNDRY_SCOPE,
     AdrCondition,
@@ -39,6 +44,10 @@ def example_report() -> ConformanceReport:
             ConformanceFinding(
                 status="does_not_conform",
                 requirement="Use workload identity.",
+                standard_evidence=(
+                    "Service-to-service authentication must use workload identity issued by "
+                    "the cloud platform."
+                ),
                 analysis="The proposal uses a static password.",
                 submission_evidence="Static username and password",
                 citation=example_citation(),
@@ -185,12 +194,54 @@ class OrchestratorTests(unittest.TestCase):
         self.assertTrue(author_agent.call_args.args[-1])
         self.assertTrue(reviewer_agent.call_args.args[-1])
 
+    @patch("run.AIProjectClient")
+    @patch("run.DefaultAzureCredential")
+    @patch("run.run_reviewer_agent")
+    @patch("run.run_adr_author_agent")
+    @patch("run.run_research_agent")
+    @patch("run.run_standards_agent")
+    def test_missing_connection_passes_empty_research_to_author(
+        self,
+        standards_agent: MagicMock,
+        research_agent: MagicMock,
+        author_agent: MagicMock,
+        reviewer_agent: MagicMock,
+        _credential_factory: MagicMock,
+        _project_client_factory: MagicMock,
+    ) -> None:
+        report = example_report()
+        standards_agent.return_value = report
+        author_agent.return_value = example_adr()
+        reviewer_agent.return_value = passing_review()
+
+        stderr = StringIO()
+        with redirect_stderr(stderr):
+            orchestrate_submission(
+                "https://example.services.ai.azure.com/api/projects/example",
+                "example-model",
+                "standards-agent",
+                "research-agent",
+                "author-agent",
+                "reviewer-agent",
+                Path("submission.md"),
+                [],
+                None,
+                ["example.com"],
+            )
+
+        research_agent.assert_not_called()
+        research = author_agent.call_args.args[5]
+        self.assertEqual(research.submission_id, report.submission_id)
+        self.assertEqual(research.technology, report.technology)
+        self.assertEqual(research.claims, [])
+        self.assertIn("no Bing or Bing Custom Search connection", stderr.getvalue())
+
 
 class ReviewValidationTests(unittest.TestCase):
     def test_agent_instructions_state_validation_policies(self) -> None:
         author_instructions = build_adr_author_instructions()
         reviewer_instructions = build_reviewer_instructions()
-        standards_instructions = build_standards_instructions([])
+        standards_instructions = " ".join(build_standards_instructions([]).split())
 
         self.assertIn("the submitted design stands", author_instructions)
         self.assertIn("the design itself must change", author_instructions)
@@ -203,7 +254,7 @@ class ReviewValidationTests(unittest.TestCase):
             reviewer_instructions,
         )
         self.assertIn("Section 3 applies only to vendor-hosted SaaS", standards_instructions)
-        self.assertIn("no finding may cite it for those proposals", standards_instructions)
+        self.assertIn("cite it once with status not_applicable", standards_instructions)
         self.assertIn("only when an applicable requirement is genuinely unaddressed", standards_instructions)
         self.assertIn("A brief direct statement is evidence", standards_instructions)
         self.assertIn("do not invent additional components", standards_instructions)
@@ -269,6 +320,9 @@ class FoundryClientTests(unittest.TestCase):
         )
 
         self.assertEqual(result.verdict, "pass")
+        definition = project_client.agents.create_version.call_args.kwargs["definition"]
+        self.assertEqual(definition.temperature, 0.0)
+        self.assertEqual(definition.top_p, 1.0)
         project_client.agents.delete_version.assert_called_once()
         openai_client.conversations.delete.assert_called_once()
 
@@ -287,6 +341,63 @@ class FoundryClientTests(unittest.TestCase):
 
         project_client.agents.delete_version.assert_not_called()
         openai_client.conversations.delete.assert_not_called()
+
+
+class CliErrorTests(unittest.TestCase):
+    @patch("run.orchestrate_submission")
+    @patch("run.resolve_foundry_config", return_value=("endpoint", "model"))
+    @patch("run.load_research_allowlist", return_value=["example.com"])
+    @patch("run.load_standards", return_value=[])
+    @patch("run.parse_args")
+    def test_main_includes_condition_notice_in_success_json(
+        self,
+        parse_args_mock: MagicMock,
+        _load_standards_mock: MagicMock,
+        _load_allowlist_mock: MagicMock,
+        _resolve_config_mock: MagicMock,
+        orchestrate_mock: MagicMock,
+    ) -> None:
+        parse_args_mock.return_value = SimpleNamespace(
+            submission=Path(__file__),
+            standards_directory=Path("standards"),
+            skip_research=False,
+            research_allowlist=Path("allowlist.json"),
+            standards_agent_name="standards",
+            research_agent_name="research",
+            adr_author_agent_name="author",
+            reviewer_agent_name="reviewer",
+            web_search_connection_id="connection",
+            keep_agent=False,
+        )
+        draft = example_adr()
+        notice = 'Condition removed: "Retain TLS 1.3." cited conforming finding 003/3.'
+        draft._processing_notices = [notice]
+        orchestrate_mock.return_value = review_run.ReviewWorkflowResult(
+            standards_report=example_report(),
+            draft_adr=draft,
+            review=passing_review(),
+        )
+        stdout = StringIO()
+
+        with redirect_stdout(stdout), redirect_stderr(StringIO()):
+            exit_code = review_run.main()
+
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["notices"], [notice])
+
+    @patch("run.parse_args")
+    def test_main_emits_json_when_workflow_fails(self, parse_args_mock: MagicMock) -> None:
+        parse_args_mock.return_value.submission = Path("missing-submission.md")
+        stdout = StringIO()
+
+        with redirect_stdout(stdout), redirect_stderr(StringIO()):
+            exit_code = review_run.main()
+
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(payload["error"]["type"], "RuntimeError")
+        self.assertIn("Submission not found", payload["error"]["message"])
 
 
 if __name__ == "__main__":

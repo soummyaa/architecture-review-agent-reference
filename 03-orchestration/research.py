@@ -21,10 +21,25 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from workshop_core import ConformanceReport, TechnologyResearch, traced_span
+from workshop_core import (
+    DETERMINISTIC_TEMPERATURE,
+    DETERMINISTIC_TOP_P,
+    ConformanceReport,
+    TechnologyResearch,
+    traced_span,
+)
 
 DEFAULT_RESEARCH_AGENT_NAME = "architecture-technology-research-agent"
 DEFAULT_RESEARCH_ALLOWLIST = Path(__file__).with_name("research-allowlist.json")
+
+
+def empty_research(report: ConformanceReport, reason: str) -> TechnologyResearch:
+    return TechnologyResearch(
+        submission_id=report.submission_id,
+        technology=report.technology,
+        summary=f"External research was skipped: {reason}",
+        claims=[],
+    )
 
 
 def normalize_allowed_domains(domains: list[str]) -> list[str]:
@@ -127,6 +142,8 @@ def run_research_agent(
             agent_name=agent_name,
             definition=PromptAgentDefinition(
                 model=model_deployment,
+                temperature=DETERMINISTIC_TEMPERATURE,
+                top_p=DETERMINISTIC_TOP_P,
                 instructions=build_research_instructions(allowed_domains),
                 tools=[search_tool],
                 tool_choice="required",
