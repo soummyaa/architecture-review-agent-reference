@@ -43,7 +43,8 @@ use the setup script and virtual environment described here. The machine needs:
 	`07-auth-harness/requirements.txt` when running Module 07.
 
 Clone this repository and run the setup script from any directory. It is safe
-to re-run and installs all module requirements in one pip command:
+to re-run and installs all module requirements in one pip command. Configure
+the approved internal index either in the environment:
 
 ```bash
 export PIP_INDEX_URL="https://nexus.example.invalid/repository/pypi/simple"
@@ -51,12 +52,18 @@ export PIP_INDEX_URL="https://nexus.example.invalid/repository/pypi/simple"
 source .venv/bin/activate
 ```
 
-Replace the synthetic URL with the internal Nexus PyPI-compatible index. The
-installer requires `PIP_INDEX_URL`, disables pip configuration and extra
-indexes, and passes that index explicitly to both pip commands. It therefore
-does not silently fall back to `pypi.org`. The devcontainer post-create command
-uses the same installer and requires the variable as a container environment
-variable.
+Or set `global.index-url` in a global, user, or site `pip.conf` and run the
+setup script without `PIP_INDEX_URL`. Replace the synthetic URL above with the
+internal PyPI-compatible index. `PIP_INDEX_URL` takes precedence when set;
+otherwise, the installer reads `global.index-url` with `pip config`. It prints
+whether the selected index came from the environment or `pip.conf` and fails
+when neither source provides one.
+
+The installer honors other pip configuration, including certificate, proxy,
+authentication, and trusted-host settings. It still passes the selected index
+explicitly to both pip commands and disables extra indexes, so it does not
+silently fall back to `pypi.org`. The devcontainer post-create command uses the
+same installer and therefore uses the same index resolution behavior.
 
 This controls Python packages only. `setup-workstation.sh` also uses the
 configured apt repositories and, when Azure CLI is absent, Microsoft's Azure

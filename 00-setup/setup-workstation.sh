@@ -6,11 +6,6 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd -- "$SCRIPT_DIR/.." && pwd)
 VENV_DIR="$REPO_ROOT/.venv"
 
-if [[ -z "${PIP_INDEX_URL:-}" ]]; then
-	echo "PIP_INDEX_URL is required; set it to the approved Python package index." >&2
-	exit 1
-fi
-
 if ! command -v sudo >/dev/null 2>&1; then
 	echo "sudo is required to install workstation packages." >&2
 	exit 1
