@@ -1,0 +1,305 @@
+{
+  "standards_report": {
+    "submission_id": "SUB-005",
+    "technology": "Token-exchange interceptor deployed with the enterprise API gateway in a second cloud",
+    "summary": "The submission proposes an internally managed platform-as-a-service interceptor integrated with the enterprise API gateway, using workload identity, role-based access, TLS, documented schemas, retry/backoff, circuit breaking, and structured logging. It also states continental U.S. residency intent and multi-AZ production deployment, but some residency and access-review details remain unverified.",
+    "findings": [
+      {
+        "status": "conforms",
+        "requirement": "New workloads must use an approved hosting model in order of preference.",
+        "standard_evidence": "New workloads must use one of the following, in order of preference:",
+        "analysis": "The proposed interceptor is described as an internally managed platform-as-a-service function, and the agents remain on the enterprise managed container platform. Both are approved hosting models under the standard.",
+        "submission_evidence": "\"The interceptor would be an internally managed platform-as-a-service function\" and \"Agents remain on the enterprise managed container platform in the primary cloud.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "1. Approved hosting models",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "partially_conforms",
+        "requirement": "Internal-classified or above data must be stored and processed within the continental United States, with contractual regional pinning for backups, disaster recovery replicas, and support access.",
+        "standard_evidence": "All data classified Internal or above must be stored and processed within the continental United States. Vendors must be able to contractually guarantee regional pinning, including for backups, disaster recovery replicas, and support access.",
+        "analysis": "The submission states that workloads, temporary storage, logs, backups, and disaster recovery replicas are intended to remain in continental U.S. regions, but it also says the second-cloud contract must still confirm regional pinning for processing, backups, disaster recovery, diagnostic data, and support access. That means the residency requirement is not yet fully evidenced.",
+        "submission_evidence": "\"Both workloads would run only in continental United States regions; request processing, temporary platform storage, logs, backups, and disaster recovery replicas are intended to remain in those regions.\" and \"The second-cloud contract must still confirm regional pinning for processing, backups, disaster recovery, diagnostic data, and support access.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "2. Data residency",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": "Obtain and document contractual confirmation that processing, backups, disaster recovery replicas, diagnostic data, and support access are pinned to the continental United States."
+      },
+      {
+        "status": "not_applicable",
+        "requirement": "Vendor-hosted SaaS products must meet the SaaS-specific conditions.",
+        "standard_evidence": "A vendor-hosted SaaS product may be approved where all of the following hold:",
+        "analysis": "The submission explicitly states the interceptor is not vendor-hosted software as a service.",
+        "submission_evidence": "\"The interceptor would be an internally managed platform-as-a-service function, not vendor-hosted software as a service or self-managed infrastructure. The vendor-hosted SaaS conditions in STD-001 Section 3 therefore do not apply.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "3. Vendor-hosted SaaS conditions",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Production workloads must be deployed across at least two availability zones, or have a documented exception with an RTO for single-zone deployments.",
+        "standard_evidence": "Production workloads must be deployed across at least two availability zones. Single-zone deployments require a documented exception with a stated recovery time objective.",
+        "analysis": "The submission states production agent workloads span three availability zones and the gateway spans at least two availability zones, satisfying the availability-zone requirement.",
+        "submission_evidence": "\"Production agent workloads already span three availability zones. The gateway spans at least two availability zones.\"",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "4. Region and availability",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Systems handling Internal-classified data or above must federate to the enterprise identity provider, with only a documented break-glass local account exception.",
+        "standard_evidence": "All systems handling Internal-classified data or above must federate to the enterprise identity provider. Local account stores are not permitted except for a documented break-glass account.",
+        "analysis": "The submission states human administrators authenticate through federation with the enterprise identity provider using OpenID Connect and that there are no local human account stores, with only documented break-glass processes.",
+        "submission_evidence": "\"Human administrators authenticate to both cloud consoles through federation with the enterprise identity provider using OpenID Connect\" and \"There are no local human account stores or MFA bypasses. Each cloud retains one documented provider-managed break-glass process.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "1. Human authentication",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Service-to-service authentication must use cloud-platform workload identity; long-lived static credentials are not approved.",
+        "standard_evidence": "Service-to-service authentication must use workload identity issued by the cloud platform. Long-lived static credentials, including API keys and shared secrets, are not approved for new systems.",
+        "analysis": "The submission states identity is asserted by the primary cloud's workload identity issuer, the interceptor validates that assertion, and there are no API keys, client secrets, shared secrets, or other long-lived credentials in the design.",
+        "submission_evidence": "\"Identity is asserted by the primary cloud's workload identity issuer.\" and \"The target design has no API key, client secret, shared secret, or other long-lived credential at the agent, interceptor, gateway, or tool.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "2. Workload authentication",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Access must be role-based, with role or group abstraction rather than individual-user permissions.",
+        "standard_evidence": "Access must be role-based. Systems that grant permissions only at an individual-user level, with no role or group abstraction, do not meet this standard.",
+        "analysis": "The submission states authorization is role-based and that roles map to enterprise directory groups, with no permissions assigned directly to individuals.",
+        "submission_evidence": "\"Authorization is role-based.\" and \"Agent caller, gateway operator, tool owner, and audit reader roles map to enterprise directory groups, with no permissions assigned directly to individuals.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "3. Authorization model",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Administrative access must be time-bound and requested, not standing.",
+        "standard_evidence": "Administrative access must be time-bound and requested, not standing. Systems that require permanently assigned administrator accounts require a documented exception.",
+        "analysis": "The submission states administrative roles are requested through the enterprise privileged access workflow and expire after a maximum of eight hours, with no standing administrator assignments.",
+        "submission_evidence": "\"Administrative roles are requested through the enterprise privileged access workflow and expire after a maximum of eight hours; there are no standing administrator assignments.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "4. Privileged access",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "partially_conforms",
+        "requirement": "All systems must support an export of users and their effective permissions in a machine-readable format for quarterly access reviews.",
+        "standard_evidence": "All systems must support an export of users and their effective permissions, in a machine-readable format, to support quarterly access reviews.",
+        "analysis": "The submission says the relevant systems can export users, workload identities, group mappings, tool scopes, and effective permissions as JSON, but it also says the team has not yet demonstrated that these can be reconciled into one end-to-end effective-permissions report. The export capability is present, but the end-to-end review artifact is not yet evidenced.",
+        "submission_evidence": "\"Both cloud platforms and the gateway must export users, workload identities, group mappings, tool scopes, and effective permissions as JSON for quarterly access reviews.\" and \"the team has validated the individual exports but has not yet demonstrated that they can be reconciled into one end-to-end effective-permissions report.\"",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "5. Access review",
+          "source_file": "STD-002-identity-and-access.md"
+        },
+        "remediation": "Demonstrate a machine-readable end-to-end export of users and effective permissions that can be used directly for quarterly access reviews."
+      },
+      {
+        "status": "conforms",
+        "requirement": "New integrations must use an approved integration pattern.",
+        "standard_evidence": "New integrations must use one of:",
+        "analysis": "The integration uses synchronous REST over HTTPS through the enterprise API gateway with an OpenAPI 3.1 specification, which matches an approved pattern.",
+        "submission_evidence": "\"Tool calls use synchronous REST over HTTPS through the enterprise API gateway. The gateway API would have an OpenAPI 3.1 specification\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "1. Approved integration patterns",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Externally reachable APIs must be published through the enterprise API gateway, versioned in the path, and retain the prior major version for at least six months after breaking changes.",
+        "standard_evidence": "Externally reachable APIs must be published through the enterprise API gateway. APIs must be versioned in the path, and breaking changes require a new major version with the prior version supported for at least six months.",
+        "analysis": "The submission states the gateway API is through the enterprise API gateway, uses a versioned /v1 path, and breaking changes receive a new major version with the prior major version supported for at least six months.",
+        "submission_evidence": "\"The gateway API would have an OpenAPI 3.1 specification and a versioned `/v1` path. Breaking changes would receive a new major version, with the prior major version supported for at least six months.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "2. API requirements",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "All data in transit must use TLS 1.2 or higher, and data at rest must be encrypted with platform-managed or customer-managed keys.",
+        "standard_evidence": "All data in transit must use TLS 1.2 or higher. Data at rest must be encrypted using platform-managed or customer-managed keys. Systems that cannot encrypt at rest are limited to Public-classified data.",
+        "analysis": "The submission states all cross-cloud traffic uses TLS 1.3 and that gateway configuration, interceptor state, and audit records use platform-managed encryption at rest.",
+        "submission_evidence": "\"All cross-cloud traffic uses TLS 1.3. Gateway configuration, interceptor state, and audit records use platform-managed encryption at rest.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "3. Transport and encryption",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Every integration must have a documented schema; consumers must tolerate unknown fields; producers must not remove or repurpose fields within a major version.",
+        "standard_evidence": "Every integration must have a documented schema. Consumers must tolerate the addition of unknown fields. Producers must not remove or repurpose fields within a major version.",
+        "analysis": "The submission states each tool request and response has a documented JSON schema, consumers ignore unknown fields, and producers do not remove or repurpose fields within a major version.",
+        "submission_evidence": "\"Each tool request and response has a documented JSON schema. Consumers ignore unknown fields, and producers do not remove or repurpose fields within a major version.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "4. Data contracts",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Consumers must implement retry with exponential backoff and a circuit breaker.",
+        "standard_evidence": "Consumers must implement retry with exponential backoff and a circuit breaker. Integrations that retry indefinitely without backoff do not meet this standard.",
+        "analysis": "The submission states the agent client retries failures with exponential backoff and jitter and that a circuit breaker opens after five consecutive failures.",
+        "submission_evidence": "\"The agent client retries connection and service-unavailable failures at most three times with exponential backoff and jitter. A circuit breaker opens after five consecutive failures.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "5. Rate limiting and resilience",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      },
+      {
+        "status": "conforms",
+        "requirement": "Integration points must emit structured logs to the enterprise logging platform, including a correlation identifier propagated across service boundaries, and logs must not contain Internal-or-above payload data.",
+        "standard_evidence": "Integration points must emit structured logs to the enterprise logging platform, including a correlation identifier propagated across service boundaries. Logs must not contain payload data classified Internal or above.",
+        "analysis": "The submission states every boundary crossing emits structured logs to the enterprise logging platform with the same correlation identifier across components, and that logs exclude tokens and Confidential payload fields.",
+        "submission_evidence": "\"Every boundary crossing emits structured logs to the enterprise logging platform with the same correlation identifier in the agent, interceptor, gateway, and tool.\" and \"the interceptor records ... but never records token values or Confidential payload fields.\"",
+        "citation": {
+          "standard_id": "STD-003",
+          "section": "6. Logging",
+          "source_file": "STD-003-integration-and-data-exchange.md"
+        },
+        "remediation": ""
+      }
+    ]
+  },
+  "draft_adr": {
+    "submission_id": "SUB-005",
+    "technology": "Token-exchange interceptor deployed with the enterprise API gateway in a second cloud",
+    "title": "Approval of token-exchange interceptor deployment with residency and access-review conditions",
+    "status": "proposed",
+    "decision": "approved_with_conditions",
+    "context": "The submission proposes an internally managed platform-as-a-service token-exchange interceptor integrated with the enterprise API gateway in a second cloud. The design uses approved hosting, federation to the enterprise identity provider, workload identity, role-based access, TLS, documented schemas, resilience controls, and structured logging. Two requirements are not yet fully evidenced: continental U.S. regional pinning for all required data and support access, and an end-to-end machine-readable export for quarterly access reviews.",
+    "standards_assessment": "Most findings conform to STD-001, STD-002, and STD-003. One data residency requirement is partially conformant because the submission states the intended continental U.S. placement but does not yet provide contractual confirmation for processing, backups, disaster recovery replicas, diagnostic data, and support access. One access review requirement is partially conformant because the submission shows individual exports but not a reconciled end-to-end effective-permissions report. No structural gaps were identified.",
+    "decision_statement": "Approved with conditions. The design may proceed once the two remediable gaps are closed by contractual confirmation and evidence of a machine-readable end-to-end access review export.",
+    "decision_drivers": [
+      "Approved hosting model is used.",
+      "Identity federation, workload identity, role-based access, and time-bound privileged access conform.",
+      "Integration, encryption, schema, resilience, and logging requirements conform.",
+      "Residency is intended but not yet contractually evidenced for all required data and support access.",
+      "Quarterly access review export capability is present but not yet demonstrated end-to-end."
+    ],
+    "conditions": [
+      {
+        "action": "Obtain and document contractual confirmation that processing, backups, disaster recovery replicas, diagnostic data, and support access are pinned to the continental United States.",
+        "rationale": "STD-001 Section 2 requires continental U.S. storage and processing with contractual regional pinning for backups, disaster recovery replicas, and support access. The submission indicates intent but does not yet evidence the contractual confirmation.",
+        "citation": {
+          "standard_id": "STD-001",
+          "section": "2. Data residency",
+          "source_file": "STD-001-cloud-hosting-and-residency.md"
+        }
+      },
+      {
+        "action": "Demonstrate a machine-readable end-to-end export of users and effective permissions that can be used directly for quarterly access reviews.",
+        "rationale": "STD-002 Section 5 requires a machine-readable export of users and effective permissions for quarterly access reviews. The submission shows component exports but not a reconciled end-to-end report.",
+        "citation": {
+          "standard_id": "STD-002",
+          "section": "5. Access review",
+          "source_file": "STD-002-identity-and-access.md"
+        }
+      }
+    ],
+    "positive_consequences": [
+      "The proposed interceptor can proceed without redesign because the identified gaps are remediable through contract confirmation and evidence generation.",
+      "The design retains approved hosting, identity, integration, encryption, resilience, and logging patterns.",
+      "The conditions focus implementation effort on compliance evidence rather than architecture replacement."
+    ],
+    "negative_consequences": [
+      "Deployment cannot be considered fully compliant until the residency contract confirmation and access-review export evidence are provided.",
+      "The team must coordinate with the cloud vendor and internal stakeholders to close the remaining evidence gaps.",
+      "Quarterly access review readiness remains incomplete until the end-to-end export is demonstrated."
+    ]
+  },
+  "review": {
+    "submission_id": "SUB-005",
+    "verdict": "pass",
+    "unsupported_claims": [],
+    "omitted_findings": [],
+    "reviewed_adr": {
+      "submission_id": "SUB-005",
+      "technology": "Token-exchange interceptor deployed with the enterprise API gateway in a second cloud",
+      "title": "Approval of token-exchange interceptor deployment with residency and access-review conditions",
+      "status": "proposed",
+      "decision": "approved_with_conditions",
+      "context": "The submission proposes an internally managed platform-as-a-service token-exchange interceptor integrated with the enterprise API gateway in a second cloud. The design uses approved hosting, federation to the enterprise identity provider, workload identity, role-based access, TLS, documented schemas, resilience controls, and structured logging. Two requirements are not yet fully evidenced: continental U.S. regional pinning for all required data and support access, and an end-to-end machine-readable export for quarterly access reviews.",
+      "standards_assessment": "Most findings conform to STD-001, STD-002, and STD-003. One data residency requirement is partially conformant because the submission states the intended continental U.S. placement but does not yet provide contractual confirmation for processing, backups, disaster recovery replicas, diagnostic data, and support access. One access review requirement is partially conformant because the submission shows individual exports but not a reconciled end-to-end effective-permissions report. No structural gaps were identified.",
+      "decision_statement": "Approved with conditions. The design may proceed once the two remediable gaps are closed by contractual confirmation and evidence of a machine-readable end-to-end access review export.",
+      "decision_drivers": [
+        "Approved hosting model is used.",
+        "Identity federation, workload identity, role-based access, and time-bound privileged access conform.",
+        "Integration, encryption, schema, resilience, and logging requirements conform.",
+        "Residency is intended but not yet contractually evidenced for all required data and support access.",
+        "Quarterly access review export capability is present but not yet demonstrated end-to-end."
+      ],
+      "conditions": [
+        {
+          "action": "Obtain and document contractual confirmation that processing, backups, disaster recovery replicas, diagnostic data, and support access are pinned to the continental United States.",
+          "rationale": "STD-001 Section 2 requires continental U.S. storage and processing with contractual regional pinning for backups, disaster recovery replicas, and support access. The submission indicates intent but does not yet evidence the contractual confirmation.",
+          "citation": {
+            "standard_id": "STD-001",
+            "section": "2. Data residency",
+            "source_file": "STD-001-cloud-hosting-and-residency.md"
+          }
+        },
+        {
+          "action": "Demonstrate a machine-readable end-to-end export of users and effective permissions that can be used directly for quarterly access reviews.",
+          "rationale": "STD-002 Section 5 requires a machine-readable export of users and effective permissions for quarterly access reviews. The submission shows component exports but not a reconciled end-to-end report.",
+          "citation": {
+            "standard_id": "STD-002",
+            "section": "5. Access review",
+            "source_file": "STD-002-identity-and-access.md"
+          }
+        }
+      ],
+      "positive_consequences": [
+        "The proposed interceptor can proceed without redesign because the identified gaps are remediable through contract confirmation and evidence generation.",
+        "The design retains approved hosting, identity, integration, encryption, resilience, and logging patterns.",
+        "The conditions focus implementation effort on compliance evidence rather than architecture replacement."
+      ],
+      "negative_consequences": [
+        "Deployment cannot be considered fully compliant until the residency contract confirmation and access-review export evidence are provided.",
+        "The team must coordinate with the cloud vendor and internal stakeholders to close the remaining evidence gaps.",
+        "Quarterly access review readiness remains incomplete until the end-to-end export is demonstrated."
+      ]
+    }
+  },
+  "notices": []
+}

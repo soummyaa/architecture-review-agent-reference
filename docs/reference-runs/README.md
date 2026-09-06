@@ -11,6 +11,7 @@ commands used before the workshop.
 - `SUB-003-clean-approval.docx`: rendered clean-approval ADR
 - `validator-output.txt`: validator output; the live request ID was redacted
 - `preflight-output.txt`: workstation preflight output
+- `SUB-005-lenient-cross-cloud-token-exchange.json`: lenient result planned for workshop discussion, not a reference-quality outcome
 
 Live runs should preserve the decision behavior demonstrated here, but their
 wording can differ because model output is not fully deterministic.
