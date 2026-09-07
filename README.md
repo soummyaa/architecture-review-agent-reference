@@ -79,8 +79,12 @@ source .venv/bin/activate
 ```
 
 [`00-setup/setup-workstation.sh`](00-setup/setup-workstation.sh) installs the
-operating-system packages, Azure CLI and extensions, Python environment, and
-dependencies for Modules 00 through 06. Install
+operating-system packages, Azure CLI when needed, a Python environment, and
+dependencies for Modules 00 through 06. Optional Bastion extensions are
+installed only with `--install-bastion-tools`; package and CLI installation can
+be skipped for pre-staged environments. See the setup module's
+[network and mirror inventory](00-setup/README.md#network-and-mirror-inventory)
+before using a restricted network. Install
 `07-auth-harness/requirements.txt` separately before running Module 07. The
 script creates `.venv` at the repository root; activate that environment in
 each new shell.

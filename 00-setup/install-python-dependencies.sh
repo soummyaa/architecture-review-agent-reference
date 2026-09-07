@@ -19,9 +19,6 @@ fi
 
 PIP_EXTRA_INDEX_URL= "$PYTHON" -m pip install \
 	--index-url "$PIP_INSTALL_INDEX_URL" \
-	--upgrade pip
-PIP_EXTRA_INDEX_URL= "$PYTHON" -m pip install \
-	--index-url "$PIP_INSTALL_INDEX_URL" \
 	-r "$REPO_ROOT/00-setup/requirements.txt" \
 	-r "$REPO_ROOT/01-standards-agent/requirements.txt" \
 	-r "$REPO_ROOT/02-intake/requirements.txt" \

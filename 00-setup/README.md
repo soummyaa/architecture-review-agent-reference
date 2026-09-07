@@ -43,8 +43,9 @@ use the setup script and virtual environment described here. The machine needs:
 	`07-auth-harness/requirements.txt` when running Module 07.
 
 Clone this repository and run the setup script from any directory. It is safe
-to re-run and installs all module requirements in one pip command. Configure
-the approved internal index either in the environment:
+to re-run and installs all module requirements in one pip command. Git is not
+used by the script; it is only needed beforehand if Git is how the repository
+is obtained. Configure the approved internal index either in the environment:
 
 ```bash
 export PIP_INDEX_URL="https://nexus.example.invalid/repository/pypi/simple"
@@ -60,20 +61,77 @@ whether the selected index came from the environment or `pip.conf` and fails
 when neither source provides one.
 
 The installer honors other pip configuration, including certificate, proxy,
-authentication, and trusted-host settings. It still passes the selected index
-explicitly to both pip commands and disables extra indexes, so it does not
-silently fall back to `pypi.org`. The devcontainer post-create command uses the
-same installer and therefore uses the same index resolution behavior.
+authentication, and trusted-host settings. It passes the selected index
+explicitly and disables extra indexes, so it does not silently fall back to
+`pypi.org`. It does not upgrade pip. The devcontainer post-create command uses
+the same installer and therefore uses the same index resolution behavior.
 
-This controls Python packages only. `setup-workstation.sh` also uses the
-configured apt repositories and, when Azure CLI is absent, Microsoft's Azure
-CLI installer; it installs the `bastion` and `ssh` Azure CLI extensions too.
-For a machine without public package access, preinstall Azure CLI and those
-extensions or configure approved internal mirrors for those repositories.
+By default, `setup-workstation.sh` installs the required OS packages and Azure
+CLI when it is absent. Environments with pre-staged packages or an existing
+Microsoft Foundry project can suppress those download paths:
+
+```bash
+./00-setup/setup-workstation.sh --skip-os-packages --skip-azure-cli
+```
+
+The script checks the preinstalled Python version after skipping OS packages.
+Azure CLI is not needed by Modules 01 through 06 when the project endpoint and
+model deployment are supplied directly. The optional Bastion tools are not
+installed by default. Request them only for the jump-box connection path:
+
+```bash
+./00-setup/setup-workstation.sh --install-bastion-tools
+```
+
+Failure to download either optional extension produces a warning and does not
+fail workstation setup.
 
 The script uses `sudo` to install operating-system packages and Azure CLI. It
 creates `.venv` at the repository root. Activate `.venv` in each new shell when
 using this standalone-workstation path.
+
+## Network and mirror inventory
+
+The setup paths were audited for package managers, direct downloads, and tool
+installation. Prepare the required artifacts before using a restricted
+network; none of the installers silently falls back to a public Python index.
+
+| Source or command | Classification for Modules 00-06 | Advance preparation or skip path |
+| --- | --- | --- |
+| Configured apt repositories: `ca-certificates`, `python3`, `python3-venv`, and transitive packages | Required on a fresh standalone workstation | Mirror the selected Ubuntu/Debian repositories, or preinstall them and pass `--skip-os-packages`. |
+| Configured Python index: every pinned package in `00-setup/requirements.txt` through `06-adr-generation/requirements.txt` | Required to run the corresponding Python modules | Mirror all seven requirement files and their pinned distributions. Set `PIP_INDEX_URL` or `global.index-url`; extra indexes are disabled. |
+| Azure CLI Debian packages via `https://aka.ms/InstallAzureCLIDeb` and the Microsoft apt repository configured by that script | Required only to deploy/query Module 00 resources; not required when infrastructure and runtime endpoints are supplied | Mirror and preinstall Azure CLI, or pass `--skip-azure-cli`. The direct installer also requires `curl`; `curl` is otherwise unused. |
+| Bicep CLI downloaded by `az bicep install` | Required only for Module 00 commands that deploy `.bicep` files | Bake an approved Bicep binary into the workstation/container in advance. The devcontainer runs `az bicep install` only when `az bicep version` cannot find one. |
+| Azure CLI `bastion` and `ssh` extensions | Optional; only used for the jump-box/Bastion connection path | Omitted by default. Pass `--install-bastion-tools` to request them; download failures are warning-only. VPN or peering needs neither extension. |
+| `mcr.microsoft.com/devcontainers/python:3.11` | Required only to build the supplied devcontainer | Mirror the base image in an approved container registry and update `image`, or use the standalone workstation path. |
+| `ghcr.io/devcontainers/features/azure-cli:1` | Required only for Module 00 provisioning from the supplied devcontainer | Mirror the feature artifact or use a base image with Azure CLI already installed. GitHub CLI is not used and is no longer installed. |
+| VS Code extensions `ms-python.python`, `ms-azuretools.vscode-bicep`, `GitHub.copilot`, and `GitHub.copilot-chat` | Optional editor tooling; no module imports or invokes them | Preinstall through the managed VS Code extension channel or omit the `customizations.vscode.extensions` entries. Their absence does not affect setup scripts or module execution. |
+
+The Azure CLI bootstrap is the only direct `curl` or `wget`-style download in
+the repository setup scripts; there is no `wget`, `git clone`, npm, npx, or
+runtime tool downloader. The repository must already be present before
+`setup-workstation.sh` runs.
+
+### Runtime service access
+
+Mirroring packages does not remove the service calls made while the workshop
+runs. Core agent modules require Microsoft Entra token endpoints and the
+configured Microsoft Foundry project/model endpoints. Module 00 deployment and
+automatic output discovery also use Azure Resource Manager; supply
+`FOUNDRY_PROJECT_ENDPOINT` and `MODEL_DEPLOYMENT_NAME` to avoid CLI discovery
+after infrastructure has been provisioned.
+
+These runtime calls are optional and already have local/offline paths:
+
+- Microsoft Graph is used only for Module 02 SharePoint input and Module 06
+	SharePoint publishing. Use a local submission and omit
+	`--upload-to-sharepoint` to avoid Graph.
+- Foundry web search and its approved public source domains are used only for
+	external research. Pass `--skip-research` to Modules 03 and 05; Module 04 is
+	the optional standalone research demonstration and can be skipped entirely.
+- Azure Monitor export occurs only when an Application Insights connection
+	string is discovered. Supplying runtime endpoints directly leaves tracing
+	unconfigured.
 
 ## Networking modes
 
