@@ -372,6 +372,20 @@ For shared workshop environments, the landing-zone deployment path using an
 existing virtual network with VPN or peered connectivity is often the more
 predictable option because connectivity can be prepared and verified centrally.
 
+## Foundry role assignment
+
+The template assigns Foundry User, role definition
+`53ca6127-db72-4b80-b1b0-d745d6d5456d`, by default. Foundry User is the least
+privilege that allows creating and writing agents, which every module needs.
+
+Where the same identity also needs control-plane project and account
+management, use Foundry Owner, role definition
+`c883944f-8b7b-4483-af10-35834be79c4a`, instead.
+
+This gap was not caught earlier because the original builder deployed into a
+subscription where they were Owner, so their own permissions covered it. It
+failed for participants who had exactly the role the template granted.
+
 ## Run Standalone
 
 Sign in, create the workshop resource group, and deploy the resources. Replace
@@ -446,6 +460,6 @@ that warning to be resolved.
 
 ## What you should understand by the end
 
-How managed identity, the Azure AI Developer role assignment, deployment
+How managed identity, the Foundry User role assignment, deployment
 outputs, and Microsoft Graph permissions combine to provide the shared
 foundation for later modules.

@@ -97,8 +97,9 @@ warning unless the workshop flow uses SharePoint input or publishing.
 Two things that are easy to miss and cost the most time:
 
 - **Data-plane RBAC is separate from subscription ownership.** Being Owner
-  grants you nothing at the data plane. The Bicep assigns Azure AI Developer
-  on the Microsoft Foundry account to the entries in `principalIds`.
+  grants you nothing at the data plane. The Bicep assigns Foundry User to the
+  entries in `principalIds`. It is the least privilege that allows creating
+  and writing agents.
 - **Foundry and SharePoint must be in the same tenant.** A Graph token
   issued for one tenant cannot read a site in another.
 

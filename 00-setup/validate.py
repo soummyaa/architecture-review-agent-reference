@@ -198,7 +198,7 @@ def check_foundry_project(
         raise RuntimeError(
             response_error(
                 response,
-                "assign the Azure AI Developer role on the Microsoft Foundry account.",
+                "assign the Foundry User role on the Microsoft Foundry account.",
             )
         )
     return "authenticated connections API request succeeded"
@@ -229,7 +229,7 @@ def check_model_deployment(
         raise RuntimeError(
             response_error(
                 response,
-                "assign the Azure AI Developer role on the Microsoft Foundry account.",
+                "assign the Foundry User role on the Microsoft Foundry account.",
             )
         )
 

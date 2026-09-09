@@ -86,9 +86,9 @@ var useExistingNetworking = !empty(existingVirtualNetworkResourceId) && !empty(e
 var deployManagedVirtualNetwork = enablePrivateNetworking && !useExistingNetworking
 var virtualNetworkResourceId = useExistingNetworking ? existingVirtualNetworkResourceId : virtualNetwork.id
 var privateEndpointSubnetResourceId = useExistingNetworking ? existingPrivateEndpointSubnetResourceId : privateEndpointSubnet.id
-var azureAiDeveloperRoleId = subscriptionResourceId(
+var foundryUserRoleId = subscriptionResourceId(
   'Microsoft.Authorization/roleDefinitions',
-  '64702f94-c441-49e6-a78b-ef80e0188fee'
+  '53ca6127-db72-4b80-b1b0-d745d6d5456d'
 )
 
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = if (deployManagedVirtualNetwork) {
@@ -326,12 +326,12 @@ resource jumpBox 'Microsoft.Compute/virtualMachines@2024-07-01' = if (deployMana
 }
 
 resource foundryRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for principalId in principalIds: {
-  name: guid(foundry.id, principalId, azureAiDeveloperRoleId)
+  name: guid(foundry.id, principalId, foundryUserRoleId)
   scope: foundry
   properties: {
     principalId: principalId
     principalType: principalType
-    roleDefinitionId: azureAiDeveloperRoleId
+    roleDefinitionId: foundryUserRoleId
   }
   dependsOn: [
     foundryProvisioning
