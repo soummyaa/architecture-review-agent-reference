@@ -15,16 +15,12 @@ it against the organization's architecture standards, researches the
 technology, writes up where it falls short, and produces an Architecture
 Decision Record.
 
-Module 03 runs a three-agent loop behind an orchestrator: the standards agent
-evaluates the submission, the research agent gathers evidence from approved
-sources, and the ADR author agent drafts the decision record. Module 05 extends
-that loop with a fourth agent, the reviewer, which checks the draft before the
-reviewed ADR is returned. Research runs by default in both orchestrators and
-can be omitted with `--skip-research`. Intake and the evaluation harness remain
-reference implementations participants can read and pull. ADR document
-generation and the Entra ID sign-in harness are facilitator demonstrations;
-the sign-in harness invokes the Module 05 four-agent chain rather than adding
-another agent.
+The live build runs a complete four-agent loop behind an orchestrator:
+the standards agent evaluates the submission, the research agent adds
+approved external context, the ADR author agent drafts the decision record,
+and the reviewer agent checks the draft before the reviewed ADR is returned.
+Intake and approved-source research remain in the repository as reference
+implementations participants can read and pull.
 
 It assists a review board. It does not replace one.
 
@@ -126,7 +122,8 @@ discussion; it is quality-scored but does not have a gated decision.
 - Python and Bicep. No Terraform.
 - Identity-based authentication through `DefaultAzureCredential`. No keys in
   code or `.env` files.
-- Each module runs standalone and has its own README.
+- Each module has its own README and entry point; modules that use Foundry
+depend on the shared setup from Module 00.
 - Readability over cleverness. People will read this code and extend it.
 - No customer names, tenant identifiers, or real URLs anywhere in this
   repository.
