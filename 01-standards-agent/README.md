@@ -20,7 +20,7 @@ needed.
 
 ## Run Standalone
 
-Review either existing synthetic submission from the repository root:
+Review any synthetic submission from the repository root. For example:
 
 ```bash
 python 01-standards-agent/run.py \

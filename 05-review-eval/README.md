@@ -79,8 +79,8 @@ Run the live decision regression after changing agent instructions:
 python 05-review-eval/decision_regression.py
 ```
 
-The command runs the three configured regression submissions through the
-standards, research, ADR author, and reviewer agents. It verifies these final
+The command runs the standards, research, ADR author, and reviewer agents. The
+regression gates exactly three configured submissions and verifies these final
 reviewed decisions:
 
 | Submission | Expected decision | Expected conditions |
@@ -106,10 +106,12 @@ directory:
 python 05-review-eval/evaluate.py
 ```
 
-The repository currently contains four submission files, so the default command
-runs all four. Point `--submissions-directory` at another non-empty directory to
-evaluate a different set. Each case receives one point for a valid reviewed ADR, one for no
-unsupported claims in the author draft, and one for no omitted findings.
+The repository currently contains five submission files, so the default command
+runs all five. Point `--submissions-directory` at another non-empty directory to
+evaluate a different set. Each case receives one point for a valid reviewed ADR,
+one for no unsupported claims in the author draft, and one for no omitted
+findings. SUB-004 and the intentionally ambiguous SUB-005 discussion case are
+quality-scored but are not part of the decision gate.
 
 ## What you should understand by the end
 How a review pass reduces hallucination risk and completes the orchestrated

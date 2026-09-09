@@ -1,9 +1,8 @@
 # Captured reference runs
 
-These reference outputs were generated on 2026-09-05 from the synthetic
-workshop submissions. They capture one full four-agent run for each gated
-decision outcome, the rendered clean-approval ADR, and the setup validation
-commands used before the workshop.
+The three gated decision runs, rendered clean-approval ADR, and setup validation
+outputs were generated on 2026-09-05 from the synthetic workshop submissions.
+The non-gated SUB-005 discussion run was added on 2026-09-06.
 
 - `SUB-003-clean-approval.json`: clean approval
 - `SUB-002-clear-rejection.json`: clear rejection
@@ -11,7 +10,10 @@ commands used before the workshop.
 - `SUB-003-clean-approval.docx`: rendered clean-approval ADR
 - `validator-output.txt`: validator output; the live request ID was redacted
 - `preflight-output.txt`: workstation preflight output
-- `SUB-005-lenient-cross-cloud-token-exchange.json`: lenient result planned for workshop discussion, not a reference-quality outcome
+- `SUB-005-lenient-cross-cloud-token-exchange.json`: non-gated, lenient result
+	retained for workshop discussion, not a reference-quality expected outcome
 
-Live runs should preserve the decision behavior demonstrated here, but their
-wording can differ because model output is not fully deterministic.
+Live SUB-001, SUB-002, and SUB-003 runs should preserve the gated decision
+behavior demonstrated here, but their wording can differ because model output
+is not fully deterministic. SUB-005 is discussion-only and has no fixed
+expected decision.

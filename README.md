@@ -105,8 +105,8 @@ Two things that are easy to miss and cost the most time:
 ## Data
 
 Everything in `data/synthetic` is invented. The directory contains three
-architecture standards and four technology submissions. Three submissions
-have explicit expected outcomes in the decision regression:
+architecture standards and five technology submissions. The decision
+regression gates three deliberately unambiguous submissions:
 
 | Submission | Expected result |
 |---|---|
@@ -115,7 +115,10 @@ have explicit expected outcomes in the decision regression:
 | QuickShip Document Service | Fails across all three standards — clear rejection |
 
 The conforming case matters as much as the failing ones. Without it, there
-is no evidence the system can say yes.
+is no evidence the system can say yes. SUB-004 is an Azure Container Apps
+document-processing case included in quality evaluation. SUB-005 is an
+intentionally ambiguous cross-cloud token-exchange case for workshop
+discussion; it is quality-scored but does not have a gated decision.
 
 ## Conventions
 
